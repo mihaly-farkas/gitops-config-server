@@ -1,0 +1,2 @@
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+io.github.mihaly_farkas.gitops_config_server.bootstrap.NoOpEncryptionBootstrapConfiguration

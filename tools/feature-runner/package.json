@@ -1,0 +1,47 @@
+{
+  "description": "Cucumber feature runner",
+  "private": true,
+  "engines": {
+    "node": ">=24.15.0",
+    "npm": ">=11.3.0"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "clean": "npm run clean:dirs && npm run clean:gts",
+    "clean:dirs": "npx rimraf reports",
+    "clean:gts": "npx gts clean",
+    "test": "npm run clean && npm run verify && npm run test:run",
+    "test:run": "npx cucumber-js",
+    "verify": "npm run verify:gts",
+    "verify:gts": "npx gts check",
+    "fix": "npm run clean && npm run fix:gts",
+    "fix:gts": "npx gts fix",
+    "dependency-management:show-major-updates": "npx npm-check-updates",
+    "dependency-management:show-minor-updates": "npx npm-check-updates --target semver",
+    "dependency-management:update-minor-dependencies": "npx npm-check-updates --target minor --upgrade && npm install",
+    "prepare:husky": "husky",
+    "prepare": "npm run prepare:husky"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "13.2.1",
+    "@cucumber/pretty-formatter": "4.0.1",
+    "@types/chai": "5.2.3",
+    "@types/node": "24.13.3",
+    "axios": "1.19.0",
+    "chai": "6.2.2",
+    "cheerio": "1.2.0",
+    "eslint-plugin-chai-friendly": "1.2.1",
+    "gts": "7.0.0",
+    "http-status-codes": "2.3.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.3.0",
+    "npm-check-updates": "23.0.2",
+    "rimraf": "6.1.3",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": "gts fix",
+    "*.json": "prettier --write"
+  }
+}
