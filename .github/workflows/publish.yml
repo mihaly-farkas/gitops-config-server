@@ -1,0 +1,74 @@
+name: "Build, verify and publish the Maven artifact and Docker image to GitHub Packages"
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - release/*
+    paths-ignore:
+      - .editorconfig
+      - .gitignore
+      - CHANGELOG.md
+      - LICENSE
+      - README.md
+      - .github/actions/calculate-release/**
+      - .github/workflows/release.yml
+concurrency:
+  group: ${{ github.repository }}-publish-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    name: "Publish"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      actions: write
+    steps:
+      - name: "Checkout GitHub repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        id: checkout
+        with:
+          fetch-depth: 0
+
+      - name: "Set up Java"
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          java-version: 25
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: pom.xml
+          server-id: github
+
+      - name: "Prepare the build environment"
+        run: |
+          # .github/workflows/publish/prepare.sh
+          chmod +x .github/workflows/publish/prepare.sh
+          .github/workflows/publish/prepare.sh
+
+      - name: "Run Maven build and publish"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: ./mvnw spotless:check verify sonar:sonar deploy --batch-mode
+
+
+#  #####################################################################################################################
+#  # Build and publish the Docker image to GitHub Packages
+#  #####################################################################################################################
+#  docker-image:
+#    name: "Docker image"
+#    uses: AGCO-OneDigital/olympus-devops-github-workflows-publish-docker/.github/workflows/publish-docker.yml@main
+#    needs:
+#      - maven-artifact
+#    with:
+#      image-tags: ghcr.io/agco-onedigital/${{ needs.maven-artifact.outputs.artifact-id }}:${{ needs.maven-artifact.outputs.version }}
+#      build-args: |
+#        APP_VERSION=${{ needs.maven-artifact.outputs.version }}
+#        BUILD_ID=${{ github.run_id }}
+#        SERVICE_USER_NAME=${{ vars.SERVICE_USER_NAME }}
+#      platforms: linux/amd64,linux/arm64
+#    secrets:
+#      github-token: ${{ secrets.SERVICE_USER_PAT }}
+#      secret-build-args: |
+#        SERVICE_USER_PAT=${{ secrets.SERVICE_USER_PAT }}

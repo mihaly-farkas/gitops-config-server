@@ -1,0 +1,11 @@
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/mihaly-farkas/spring-cloud-config-server
+          search-paths: example/config
+  security:
+    user:
+      name: user
+      password: password

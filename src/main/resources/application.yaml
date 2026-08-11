@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: spring-cloud-config-server
+  cloud:
+    config:
+      server:
+        prefix: /config
+        git:
+          uri: ${CONFIG_GIT_URI}
+          default-label: ${CONFIG_GIT_DEFAULT_LABEL:main}
+          username: ${CONFIG_GIT_USERNAME:}
+          password: ${CONFIG_GIT_PASSWORD:}
+          search-paths: ${CONFIG_GIT_SEARCH_PATHS:}
+          refresh-rate: ${CONFIG_REFRESH_RATE:-1}
+  security:
+    user:
+      name: ${SPRING_SECURITY_USER_NAME:}
+      password: ${SPRING_SECURITY_USER_PASSWORD:}
+encrypt:
+  key: ${CONFIG_ENCRYPTION_KEY:}
+server:
+  port: ${SERVER_PORT:8888}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs/v3
+  swagger-ui:
+    csrf:
+      enabled: true
+  show-actuator: true
+  group-configs:
+    - group: spring-boot-actuator
+      display-name: Spring Boot Actuator
+      paths-to-match:
+        - /actuator/**
+    - group: spring-cloud-config
+      display-name: Spring Cloud Config
+      paths-to-match:
+        - /config/**
+logging:
+  level:
+    root: INFO
+    io:
+      github:
+        mihaly_farkas:
+          spring_cloud_config_server:
+            system:
+              # Set to DEBUG to see the spring.cloud.config.server.git property values in the logs.
+              # The Git password and the encryption key will be masked in the logs, only the first and last characters
+              # will be shown.
+              ConfigDebugListener: INFO

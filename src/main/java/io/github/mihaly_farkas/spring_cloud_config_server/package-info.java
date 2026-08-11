@@ -1,0 +1,1 @@
+package io.github.mihaly_farkas.spring_cloud_config_server;

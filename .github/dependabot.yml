@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      maven-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "build"
+      prefix-development: "chore"
+      include: "scope"
+    reviewers:
+      - "mihaly-farkas"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+    reviewers:
+      - "mihaly-farkas"
