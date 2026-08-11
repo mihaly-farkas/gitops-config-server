@@ -1,0 +1,5 @@
+gitops-config-server:
+  health:
+    socket:
+      enabled: true
+      path: health.sock
