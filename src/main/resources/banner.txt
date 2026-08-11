@@ -1,0 +1,10 @@
+
+ ${AnsiColor.CYAN}===============================================${AnsiStyle.NORMAL}
+ ${AnsiColor.CYAN}${gitops-config-server.name.human-readable:${spring.application.name}}${AnsiStyle.NORMAL}
+ ${AnsiColor.CYAN}===============================================${AnsiStyle.NORMAL}
+
+ ${AnsiColor.WHITE}:: GitOps Config Server :: (v${gitops-config-server.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.GREEN}:: Spring Boot          :: (v${spring-boot.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.GREEN}:: Spring Security      :: (v${gitops-config-server.bom.spring-security.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.GREEN}:: Spring Cloud         :: (v${gitops-config-server.bom.spring-cloud.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.MAGENTA}:: Tomcat               :: (v${gitops-config-server.bom.tomcat.version})${AnsiStyle.NORMAL}

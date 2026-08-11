@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: gitops-config-server
+  mvc:
+    # Enable Problem Details (RFC 9457) support for Spring MVC controllers.
+    # This is a standard way to represent errors in HTTP APIs.
+    problemdetails:
+      enabled: true
+  web:
+    # Disable Spring Boot's default static resource mappings.
+    # Since this is an API-only service, no static resources are served, and this prevents
+    # unnecessary resource handling, potentially improving performance and security and avoiding
+    # confusing error messages.
+    resources:
+      add-mappings: false
+  cloud:
+    config:
+      server:
+        # The version of the Spring Cloud Config Server API.
+        # See: https://docs.spring.io/spring-cloud-config/docs/current/reference/html/
+        prefix: /config/v4
+
+server:
+  port: 8888
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+  show-actuator: true
+  group-configs:
+    - group: spring-boot-actuator
+      display-name: Spring Boot Actuator
+      paths-to-match:
+        - "${management.endpoints.web.base-path:/actuator}/**"
+    - group: spring-cloud-config
+      display-name: Spring Cloud Config
+      paths-to-match:
+        - "${spring.cloud.config.server.prefix:}/**"
+
+logging:
+  level:
+    root: INFO
+
+gitops-config-server:
+  version: @project.version@
+  security:
+    disable-csrf: ${GITOPS_CONFIG_SERVER_SECURITY_DISABLE_CSRF:false}
+  bom:
+    spring-security:
+      version: @spring-security.version@
+    spring-cloud:
+      version: @spring-cloud.version@
+    tomcat:
+      version: @tomcat.version@

@@ -1,0 +1,71 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: daily
+    groups:
+      maven-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: build
+      prefix-development: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directory: /tool/feature-runner
+    schedule:
+      interval: daily
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: typescript
+        update-types:
+          - "version-update:semver-major"
+    commit-message:
+      prefix: test
+      include: scope
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+    registries:
+      - dhi-registry
+    allow:
+      - dependency-type: direct
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types:
+          - "version-update:semver-major"
+    commit-message:
+      prefix: build
+      include: scope
+
+registries:
+  dhi-registry:
+    type: docker-registry
+    url: https://dhi.io
+    username: ${{ secrets.DHI_REGISTRY_USERNAME }}
+    password: ${{ secrets.DHI_REGISTRY_PASSWORD }}
