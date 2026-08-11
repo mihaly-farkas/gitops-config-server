@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:gitops-config-server}
+  main:
+    banner-mode: off
+  cloud:
+    config:
+      server:
+        # The version of the Spring Cloud Config Server API.
+        # See: https://docs.spring.io/spring-cloud-config/docs/current/reference/html/
+        prefix: /config/v4
+
+server:
+  port: ${SERVER_PORT:8888}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health}
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+    # The version of the SpringDoc OpenAPI API.
+    # See: https://springdoc.org
+    path: /api-docs/v3
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
+    csrf:
+      enabled: ${SPRINGDOC_SWAGGER_UI_CSRF_ENABLED:true}
+  show-actuator: ${SPRINGDOC_SHOW_ACTUATOR:true}
+  group-configs:
+    - group: spring-boot-actuator
+      display-name: Spring Boot Actuator
+      paths-to-match:
+        - /actuator/**
+    - group: spring-cloud-config
+      display-name: Spring Cloud Config
+      paths-to-match:
+        - /config/**
+
+logging:
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    io:
+      github:
+        mihaly_farkas:
+          gitops_config_server:
+            system:
+              # Set to DEBUG to see the config property values in the logs.
+              # Sensitive information will be masked in the logs.
+              ConfigDebugListener: ${LOGGING_LEVEL_CONFIG_DEBUG_LISTENER:INFO}

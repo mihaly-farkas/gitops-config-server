@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: daily
+    groups:
+      maven-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: build
+      prefix-development: chore
+      include: scope
+    reviewers:
+      - mihaly-farkas
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
+    reviewers:
+      - mihaly-farkas
+  - package-ecosystem: npm
+    directory: /tools/feature-runner
+    schedule:
+      interval: daily
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: test
+      include: scope
+    reviewers:
+      - mihaly-farkas

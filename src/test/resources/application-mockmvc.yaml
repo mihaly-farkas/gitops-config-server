@@ -1,0 +1,19 @@
+spring:
+  cloud:
+    config:
+      server:
+        git:
+          uri: "https://github.com/mihaly-farkas/gitops-config-server-example"
+  security:
+    user:
+      name: "admin"
+      password: "y0uR_S3cur3_aDm1N_P4ssw0rd"
+
+logging:
+  level:
+    io:
+      github:
+        mihaly_farkas:
+          gitops_config_server:
+            system:
+              ConfigDebugListener: DEBUG
