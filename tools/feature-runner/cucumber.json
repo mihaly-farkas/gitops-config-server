@@ -1,0 +1,23 @@
+{
+  "default": {
+    "requireModule": [
+      "tsx"
+    ],
+    "require": [
+      "cucumber/**/*.ts",
+      "steps/**/*.ts"
+    ],
+    "paths": [
+      "features/**/*.feature"
+    ],
+    "format": [
+      [
+        "progress"
+      ],
+      [
+        "html",
+        "reports/cucumber-report.html"
+      ]
+    ]
+  }
+}
