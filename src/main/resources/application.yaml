@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: gitops-config-server
+  main:
+    banner-mode: off
+  mvc:
+    # Enable Problem Details (RFC 9457) support for Spring MVC controllers.
+    # This is a standard way to represent errors in HTTP APIs.
+    problemdetails:
+      enabled: true
+  web:
+    # Disable Spring Boot's default static resource mappings.
+    # Since this is an API-only service, no static resources are served, and this prevents
+    # unnecessary resource handling, potentially improving performance and security and avoiding
+    # confusing error messages.
+    resources:
+      add-mappings: false
+  cloud:
+    config:
+      server:
+        # The version of the Spring Cloud Config Server API.
+        # See: https://docs.spring.io/spring-cloud-config/docs/current/reference/html/
+        prefix: /config/v4
+
+server:
+  port: 8888
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator/v3
+      exposure:
+        include: health
+
+springdoc:
+  api-docs:
+    enabled: true
+    # The version of the SpringDoc OpenAPI API.
+    # See: https://springdoc.org
+    path: /api-docs/v3
+  swagger-ui:
+    enabled: true
+    csrf:
+      enabled: true
+  show-actuator: true
+  group-configs:
+    - group: spring-boot-actuator
+      display-name: Spring Boot Actuator
+      paths-to-match:
+        - /actuator/v3/**
+    - group: spring-cloud-config
+      display-name: Spring Cloud Config
+      paths-to-match:
+        - /config/v4/**
+
+logging:
+  level:
+    root: INFO
+
+gitops-config-server:
+  security:
+    # This is a stateless, API-only application used by other applications, CLIs, scripts, curl, etc.
+    # The application is not used by browsers and does not use cookies or sessions.
+    # Authentication is handled through the Authorization header, so CSRF protection is not applicable.
+    disable-csrf: true

@@ -1,0 +1,5 @@
+spring:
+  security:
+    user:
+      name: your-admin-user
+      password: y0uR_S3cur3_aDm1N_P4ssw0rd

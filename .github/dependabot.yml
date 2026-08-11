@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    registries:
+      - dhi-registry
+    allow:
+      - dependency-type: "direct"
+
+registries:
+  dhi-registry:
+    type: docker-registry
+    url: https://dhi.io
+    username: ${{ secrets.DHI_REGISTRY_USERNAME }}
+    password: ${{ secrets.DHI_REGISTRY_PASSWORD }}
