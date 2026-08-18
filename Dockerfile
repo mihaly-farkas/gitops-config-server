@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 \
     healthcheck.go
 
 # syntax=docker/dockerfile:1.26
-FROM dhi.io/eclipse-temurin:25.0.4.7-alpine3.24
+FROM dhi.io/eclipse-temurin:26.0.2.10-alpine3.24
 
 ARG APP_VERSION
 ARG BUILD_ID
