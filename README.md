@@ -2,10 +2,10 @@
 [![CodeQL](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/dependabot/dependabot-updates)
 
-[![Sonar quality gate status](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=alert_status&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
-[![Sonar coverage](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=coverage&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
-[![Sonar Security Rating](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=security_rating&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
-[![Sonar Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=sqale_index&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=alert_status&token=a83a9d01bf6b9e2e1a526f3c12a0bc1a1de4bbc9)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=coverage&token=a83a9d01bf6b9e2e1a526f3c12a0bc1a1de4bbc9)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=security_rating&token=a83a9d01bf6b9e2e1a526f3c12a0bc1a1de4bbc9)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=sqale_index&token=a83a9d01bf6b9e2e1a526f3c12a0bc1a1de4bbc9)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
 
 [![Java 25 LTS](https://img.shields.io/badge/java-25%20LTS-blue.svg)](https://www.oracle.com/java/technologies/javase/jdk25-archive-downloads.html)
 [![Maven 3.9.16](https://img.shields.io/badge/maven-3.9.16-blue.svg)](https://maven.apache.org/download.cgi)
