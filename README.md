@@ -35,7 +35,7 @@ Use it at your own risk, and carefully review and adapt the configuration before
       --name    spring-boot-config-server \
       --publish 8888:8888 \
       ghcr.io/mihaly-farkas/spring-boot-config-server:unstable \
-      --mihaly-farkas.spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
+      --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
       --encrypt.key='3x4mp13_r3p0_S3cur3_3Nc1pT1on_k3Y' \
       --spring.profiles.active='docker,no_auth'
    ```
