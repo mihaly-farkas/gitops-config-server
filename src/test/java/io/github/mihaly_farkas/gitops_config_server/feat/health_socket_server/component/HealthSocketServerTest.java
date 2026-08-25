@@ -370,6 +370,34 @@ class HealthSocketServerTest {
     // ASSERT
     verify(workerThread, times(1)).interrupt();
     verify(workerThread, times(1)).join(any(Duration.class));
+    verify(workerThreadReference, times(1)).compareAndSet(workerThread, null);
+  }
+
+  @DisplayName(
+      "HealthSocketServer.close() keeps the server in STOPPING"
+          + " until the worker thread actually terminates")
+  @Test
+  @SneakyThrows
+  void closeKeepsStoppingStatusWhileWorkerThreadIsStillRunning() {
+    // ARRANGE
+    var workerThread = mock(Thread.class);
+    var workerThreadReference = mockWorkerThreadReference();
+    var server =
+        new HealthSocketServer(
+            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
+
+    when(workerThread.isAlive()).thenReturn(true, true, true);
+    when(workerThread.isInterrupted()).thenReturn(true);
+    when(workerThreadReference.get()).thenReturn(workerThread);
+
+    // ACT
+    server.close();
+
+    // ASSERT
+    assertThat("The server stays in STOPPING while the worker thread is still running", server.status(), is(STOPPING));
+    assertVerify(
+        "The worker thread reference is kept until the thread actually terminates",
+        () -> verify(workerThreadReference, times(0)).compareAndSet(workerThread, null));
   }
 
   @DisplayName(
