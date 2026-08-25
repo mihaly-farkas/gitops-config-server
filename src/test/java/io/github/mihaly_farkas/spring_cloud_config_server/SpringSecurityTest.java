@@ -1,6 +1,6 @@
 package io.github.mihaly_farkas.spring_cloud_config_server;
 
-import static io.github.mihaly_farkas.spring_cloud_config_server.lib.http.MediaType.APPLICATION_SPRING_cloud_ACTUATOR_JSON;
+import static io.github.mihaly_farkas.spring_cloud_config_server.lib.http.MediaType.APPLICATION_SPRING_CLOUD_ACTUATOR_JSON;
 import static java.util.Objects.requireNonNull;
 import static org.springframework.http.HttpStatus.FOUND;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -73,7 +73,7 @@ abstract class SpringSecurityTest extends MockMvcTest {
             webEndpointsSupplier.getEndpoints().stream()
                 .map(PathMappedEndpoint::getRootPath)
                 .map(rootPath -> actuatorBasePath + "/" + rootPath))
-        .map(path -> Arguments.of(path, OK, APPLICATION_SPRING_cloud_ACTUATOR_JSON));
+        .map(path -> Arguments.of(path, OK, APPLICATION_SPRING_CLOUD_ACTUATOR_JSON));
   }
 
   Stream<Arguments> springCloudConfigServerEndpoints() {
