@@ -79,11 +79,14 @@ public class TestLogAppender extends AppenderBase<ILoggingEvent> {
 
   @SuppressWarnings({"ResultOfMethodCallIgnored", "java:S2925"})
   public void flushLogs() {
+    Thread.yield();
     LogManager.getFactory();
+    Thread.yield();
     try {
-      sleep(10);
+      sleep(50);
     } catch (InterruptedException _) {
       Thread.currentThread().interrupt();
     }
+    Thread.yield();
   }
 }
