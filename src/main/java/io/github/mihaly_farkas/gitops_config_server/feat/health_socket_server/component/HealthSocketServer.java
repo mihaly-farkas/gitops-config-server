@@ -2,6 +2,7 @@ package io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.c
 
 import static java.lang.Boolean.TRUE;
 import static java.net.StandardProtocolFamily.UNIX;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.springframework.boot.health.contributor.Status.UP;
 
 import jakarta.annotation.PostConstruct;
@@ -544,7 +545,7 @@ public class HealthSocketServer implements AutoCloseable {
       }
 
       try {
-        socket.write(ByteBuffer.wrap(new byte[] {(byte) response}));
+        socket.write(ByteBuffer.wrap(String.valueOf(response).getBytes(US_ASCII)));
         log.debug("Health socket server sent response (response={})", response);
         failedWriteCount.set(0);
       } catch (IOException e) {
