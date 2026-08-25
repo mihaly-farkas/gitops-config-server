@@ -24,7 +24,7 @@ Yet another containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/proj
 
 - **Containerized Distribution:** Distributed as a Docker image with the required runtime configuration already assembled.
 
-  - **Hardened Runtime Image:** Built on a security-hardened, minimal Eclipse Temurin [runtime image](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images?search=25-alpine&variants=runtime) designed to minimize the runtime attack surface, with no shell or unnecessary runtime tooling included.
+  - **Hardened Runtime Image:** Built on a security-hardened, minimal [Eclipse&nbsp;Temurin](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images?search=25-alpine&variants=runtime) runtime image designed to minimize the runtime attack surface, with no shell or unnecessary runtime tooling included.
 
 - **Ready-to-Use Configuration Setup:** Comes with the essential Spring Boot, Spring Cloud Config, security, encryption, and operational configuration already set up.
 
