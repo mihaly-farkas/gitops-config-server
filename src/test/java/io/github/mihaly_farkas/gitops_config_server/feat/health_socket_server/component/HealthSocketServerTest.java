@@ -4,6 +4,9 @@ import static ch.qos.logback.classic.Level.DEBUG;
 import static ch.qos.logback.classic.Level.ERROR;
 import static ch.qos.logback.classic.Level.INFO;
 import static ch.qos.logback.classic.Level.WARN;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.HealthSocketServerBuilder;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Runtime;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.ServerStatusTimeoutException;
 import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Status.RUNNING;
 import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Status.STOPPED;
 import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Status.STOPPING;
@@ -13,13 +16,13 @@ import static io.github.mihaly_farkas.gitops_config_server.lib.test_tool.TestLog
 import static io.github.mihaly_farkas.gitops_config_server.lib.test_tool.TestLogAppenderMatcher.loggedInOrder;
 import static io.github.mihaly_farkas.gitops_config_server.lib.test_tool.UnixSocketReader.readFrom;
 import static java.lang.Thread.ofVirtual;
-import static java.lang.Thread.sleep;
+import static java.net.StandardProtocolFamily.UNIX;
+import static java.nio.file.Files.deleteIfExists;
 import static java.util.UUID.randomUUID;
+import static java.util.stream.IntStream.range;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -31,6 +34,7 @@ import static org.springframework.boot.health.contributor.Status.UP;
 import io.github.mihaly_farkas.gitops_config_server.lib.test_tool.TestLogAppender;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Optional;
@@ -53,56 +57,10 @@ class HealthSocketServerTest {
 
   static Stream<Arguments> healthStatuses() {
     return Stream.of(
-        Arguments.of(UP, 'H'),
-        Arguments.of(Status.DOWN, 'U'),
-        Arguments.of(Status.OUT_OF_SERVICE, 'U'),
-        Arguments.of(Status.UNKNOWN, 'U'));
-  }
-
-  @DisplayName(
-      "HealthSocketServer responses based on the health status provided by the Actuator Health Endpoint")
-  @MethodSource("healthStatuses")
-  @ParameterizedTest(name = "actuatorStatus: {0}")
-  @SneakyThrows
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
-  void socketResponse(Status actuatorStatus, char expectedStatus) {
-    // ARRANGE
-    var socketPath = socketPath();
-    var socketPathname = socketPath.toString();
-    var healthDescriptor = mockHealthDescriptor(actuatorStatus);
-    var healthEndpoint = mockHealthEndpoint(healthDescriptor);
-    var server = serverBuilder().socketPath(socketPath).healthEndpoint(healthEndpoint).build();
-    var logAppender = attachLogAppenderTo(server);
-
-    // ACT
-    server
-        .start() // Start the server
-        .waitUntil(RUNNING); // Wait until the server is running
-
-    var status = readFrom(server.socketPath()); // Read the response through the socket
-
-    server.stop(); // Stop the server
-
-    // ASSERT
-    assertThat(
-        "The response from the health socket server is '" + expectedStatus + "'",
-        status.get(),
-        is(expectedStatus));
-    assertThat(
-        "The server logged the expected messages",
-        logAppender,
-        loggedInOrder(
-            logEntry(
-                INFO, "Health socket server listening (socketPathname=" + socketPathname + ")"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(DEBUG, "Health socket server sent response (response=" + expectedStatus + ")"),
-            logEntry(DEBUG, "Health socket server thread interrupted"),
-            logEntry(
-                DEBUG,
-                "Health socket server cleaned up the socket file (socketPathname="
-                    + socketPathname
-                    + ")"),
-            logEntry(INFO, "Health socket server stopped")));
+        Arguments.of(UP, 'H', "healthy"),
+        Arguments.of(Status.DOWN, 'U', "unhealthy"),
+        Arguments.of(Status.OUT_OF_SERVICE, 'U', "unhealthy"),
+        Arguments.of(Status.UNKNOWN, 'U', "unhealthy"));
   }
 
   @DisplayName("HealthSocketServer cannot be created with a null socket path")
@@ -111,13 +69,14 @@ class HealthSocketServerTest {
     // ARRANGE
     var serverBuilder = serverBuilder().socketPath(null);
 
-    // ACT & ASSERT
+    // ACT
     var exception = assertThrowsExactly(IllegalArgumentException.class, serverBuilder::build);
 
+    // ASSERT
     assertThat(
         "The exception message is as expected",
         exception.getMessage(),
-        is("socketPath cannot be null"));
+        is("socketPath must not be null"));
   }
 
   @DisplayName("HealthSocketServer cannot be created with a null health endpoint")
@@ -126,13 +85,14 @@ class HealthSocketServerTest {
     // ARRANGE
     var serverBuilder = serverBuilder().healthEndpoint(null);
 
-    // ACT & ASSERT
+    // ACT
     var exception = assertThrowsExactly(IllegalArgumentException.class, serverBuilder::build);
 
+    // ASSERT
     assertThat(
         "The exception message is as expected",
         exception.getMessage(),
-        is("healthEndpoint cannot be null"));
+        is("healthEndpoint must not be null"));
   }
 
   @DisplayName("HealthSocketServer is an auto-closeable resource")
@@ -142,18 +102,43 @@ class HealthSocketServerTest {
     // ARRANGE
     var server = server();
 
-    // ACT & ASSERT
+    // ACT
     try (server) {
-      server
-          .start() // Start the server
-          .waitUntil(RUNNING); // Wait until the server is running
-
-      // The server will be automatically closed at the end of the try-with-resources block
+      server.start().waitUntil(RUNNING);
     }
 
-    server.waitUntil(STOPPED);
-
+    // ASSERT
     assertThat("The server is stopped", server.status(), is(STOPPED));
+  }
+
+  @DisplayName("HealthSocketServer responses via socket based on Actuator Health Endpoint status")
+  @MethodSource("healthStatuses")
+  @ParameterizedTest(name = "actuatorStatus: {0}")
+  @SneakyThrows
+  void socketResponse(Status actuatorStatus, char expectedStatus, String expectedStatusText) {
+    // ARRANGE
+    var expectedLogMessage = "Response sent: '" + expectedStatus + "' (" + expectedStatusText + ")";
+    var socketPath = socketPath();
+    var healthDescriptor = mockHealthDescriptor(actuatorStatus);
+    var healthEndpoint = mockHealthEndpoint(healthDescriptor);
+    var server = serverBuilder().socketPath(socketPath).healthEndpoint(healthEndpoint).build();
+    var logAppender = attachLogAppenderTo(server);
+    server.start().waitUntil(RUNNING);
+
+    // ACT
+    var status = readFrom(socketPath);
+
+    // ASSERT
+    assertThat("The response is not empty", status.isPresent(), is(true));
+    assertThat("The response is '" + expectedStatus + "'", status.get(), is(expectedStatus));
+    assertThat(
+        "Logged messages are:",
+        logAppender,
+        loggedInOrder(logEntry(DEBUG, "Client connected"), logEntry(DEBUG, expectedLogMessage)));
+
+    // CLEANUP
+    server.close();
+    logAppender.detach();
   }
 
   @DisplayName("HealthSocketServer.start() executes safely when called twice")
@@ -163,21 +148,21 @@ class HealthSocketServerTest {
     // ARRANGE
     var server = server();
     var logAppender = attachLogAppenderTo(server);
+    server.start().waitUntil(RUNNING);
+    var workerThreadName = server.workerThreadName().orElseThrow();
 
     // ACT
-    server
-        .start() // Start the server for the first time
-        .waitUntil(RUNNING) // Wait until the server is running
-        .start() // Call start() again while the server is already running
-        .stop(); // Stop the server
-
-    logAppender.detach(); // Detach the log appender
+    server.start();
 
     // ASSERT
     assertThat(
-        "The server logged that it is already running",
+        "Logged messages are:",
         logAppender,
-        logged(WARN, "Health socket server is already running (threadName=health-socket-server)"));
+        logged(WARN, "Already running, worker thread name: " + workerThreadName));
+
+    // CLEANUP
+    server.close();
+    logAppender.detach();
   }
 
   @DisplayName("HealthSocketServer.start() executes safely when called concurrently")
@@ -185,16 +170,19 @@ class HealthSocketServerTest {
   @SneakyThrows
   void startConcurrently() {
     // ARRANGE
-
-    // Mock the server thread we want to be created
-    var serverThread = mock(Thread.class);
-    when(serverThread.getName()).thenReturn("health-socket-server-test-thread-" + randomUUID());
-
-    // Mock the server thread that is set by another concurrent call to start()
-    var serverThreadSetByOther = mock(Thread.class);
-    when(serverThreadSetByOther.getName())
-        .thenReturn("health-socket-server-test-thread-set-by-other-call-" + randomUUID());
-    var serverThreadSetByOtherName = Optional.of(serverThreadSetByOther.getName());
+    var workerThreadName = "health-socket-server-test-thread-" + randomUUID();
+    var workerThreadSetByOtherName =
+        "health-socket-server-test-thread-set-by-other-call-" + randomUUID();
+    var workerThread = mock(Thread.class);
+    var workerThreadSetByOther = mock(Thread.class);
+    var workerThreadSetByOtherNameOptional = Optional.of(workerThreadSetByOtherName);
+    var workerThreadReference = mockWorkerThreadReference();
+    var workerThreadFactory = mock(ThreadFactory.class);
+    var runtime = mock(Runtime.class);
+    var server =
+        new HealthSocketServer(
+            mock(Path.class), mock(HealthEndpoint.class), runtime, workerThreadReference);
+    var logAppender = attachLogAppenderTo(server);
 
     // Mock the AtomicReference holding the running server thread.
     //
@@ -202,304 +190,249 @@ class HealthSocketServerTest {
     // 1. The slower thread checks if the reference is null.
     // 2. A faster thread sets the reference in the meantime.
     // 3. The slower thread finds a non-null reference immediately after its check.
-    //
-    // Behavior setup:
-    // - get(): First returns null (simulating no running thread), then returns the thread set by
-    // the rival call.
-    // - compareAndSet(null, serverThread): Returns false to simulate that another thread beat it to
-    // the initialization.
-    var serverThreadReference = mockServerThreadReference();
-    when(serverThreadReference.get()).thenReturn(null, serverThreadSetByOther);
-    when(serverThreadReference.compareAndSet(null, serverThread)).thenReturn(false);
-
-    // Mock the server thread factory that creates new server threads
-    // It returns a server thread for the slower starter that loses the race.
-    var serverThreadFactory = mock(ThreadFactory.class);
-    var runtime = mock(HealthSocketServer.Runtime.class);
-    when(runtime.serverThreadFactory()).thenReturn(serverThreadFactory);
-    when(serverThreadFactory.newThread(any(HealthSocketServer.ServerProcess.class)))
-        .thenReturn(serverThread);
-
-    // Create the HealthSocketServer instance
-    var server =
-        new HealthSocketServer(
-            mock(Path.class), mock(HealthEndpoint.class), runtime, serverThreadReference);
-    var logAppender = attachLogAppenderTo(server);
+    when(workerThread.getName()).thenReturn(workerThreadName);
+    when(workerThreadSetByOther.getName()).thenReturn(workerThreadSetByOtherName);
+    when(workerThreadReference.get()).thenReturn(null, workerThreadSetByOther);
+    when(workerThreadReference.compareAndSet(null, workerThread)).thenReturn(false);
+    when(runtime.workerThreadFactory()).thenReturn(workerThreadFactory);
+    when(workerThreadFactory.newThread(any(HealthSocketServer.WorkerProcess.class)))
+        .thenReturn(workerThread);
 
     // ACT
-    server.start(); // Start the server
-
-    logAppender.detach(); // Detach the log appender
+    server.start();
 
     // ASSERT
     assertThat(
         "The server thread is the one which created by the faster starter",
-        server.serverThreadName(),
-        is(serverThreadSetByOtherName));
+        server.workerThreadName(),
+        is(workerThreadSetByOtherNameOptional));
     assertVerify(
         "The server thread that was created by the slower starter is never started",
-        () -> verify(serverThread, times(0)).start());
+        () -> verify(workerThread, times(0)).start());
     assertThat(
-        "The server logged that it is already running",
+        "Logged messages are:",
         logAppender,
-        logged(
-            WARN,
-            "Health socket server is already running (threadName="
-                + serverThreadSetByOtherName.get()
-                + ")"));
+        logged(WARN, "Already running, worker thread name: " + workerThreadSetByOtherName));
+
+    // CLEANUP
+    server.close();
+    logAppender.detach();
   }
 
-  @DisplayName(
-      "HealthSocketServer.serverThreadName() returns the name of the running server thread")
+  @DisplayName("HealthSocketServer.workerThreadName() returns the name of the worker thread")
   @Test
   @SneakyThrows
-  @SuppressWarnings("resource")
-  void serverThreadName() {
+  void workerThreadName() {
     // ARRANGE
-    var serverThreadName = Optional.of("health-socket-server-test-thread-" + randomUUID());
-    var virtualThreadBuilder = ofVirtual().name(serverThreadName.get());
+    var workerThreadName = Optional.of("health-socket-server-test-thread-" + randomUUID());
+    var virtualThreadBuilder = ofVirtual().name(workerThreadName.get());
     var server = serverBuilder().virtualThreadBuilder(virtualThreadBuilder).build();
+    server.start().waitUntil(RUNNING);
 
     // ACT
-    server
-        .start() // Start the server
-        .waitUntil(RUNNING); // Wait until the server is running
-
-    var threadName = server.serverThreadName(); // Get the name of the running server thread
-
-    server.stop(); // Stop the server
+    var threadName = server.workerThreadName();
 
     // ASSERT
     assertThat(
         "The server thread name is the one that was set for the thread builder during creation",
         threadName,
-        is(serverThreadName));
+        is(workerThreadName));
+
+    // CLEANUP
+    server.close();
   }
 
-  @DisplayName("HealthSocketServer.serverThreadName() returns empty when the server is not started")
+  @DisplayName("HealthSocketServer.workerThreadName() returns empty when the server is not started")
   @Test
-  @SuppressWarnings("resource")
-  void serverThreadNameWhenNotStarted() {
+  void workerThreadNameWhenNotStarted() {
     // ARRANGE
     var server = server();
 
     // ACT
-    var threadName = server.serverThreadName(); // Get the name of the running server thread
+    var threadName = server.workerThreadName();
 
     // ASSERT
     assertThat("The server thread name is empty", threadName, is(Optional.empty()));
+
+    // CLEANUP
+    server.close();
   }
 
-  @DisplayName("HealthSocketServer.serverThreadName() returns empty when the server is stopped")
+  @DisplayName("HealthSocketServer.workerThreadName() returns empty when the server is stopped")
   @Test
   @SneakyThrows
-  @SuppressWarnings("resource")
-  void serverThreadNameWhenStopped() {
+  void workerThreadNameWhenStopped() {
     // ARRANGE
     var server = server();
+    server.start().waitUntil(RUNNING).close();
 
     // ACT
-    server
-        .start() // Start the server
-        .waitUntil(RUNNING) // Wait until the server is running
-        .stop(); // Stop the server
-
-    var threadName = server.serverThreadName(); // Get the name of the running server thread
+    var threadName = server.workerThreadName();
 
     // ASSERT
     assertThat("The server thread name is empty", threadName, is(Optional.empty()));
-  }
-
-  @DisplayName("HealthSocketServer.interrupt() terminates gracefully")
-  @Test
-  @SneakyThrows
-  void interrupt() {
-    // ARRANGE
-    var socketPath = socketPath();
-    var socketPathname = socketPath.toString();
-    var server = serverBuilder().socketPath(socketPath).build();
-    var logAppender = attachLogAppenderTo(server);
-
-    // ACT
-    server
-        .start() // Start the server
-        .waitUntil(RUNNING) // Wait until the server is running
-        .interrupt() // Interrupt the server thread
-        .waitUntil(STOPPED); // Wait until the server is stopped
-
-    logAppender.detach(); // Detach the log appender
-
-    // ASSERT
-    assertThat("The server is stopped", server.status(), is(STOPPED));
-
-    assertThat(
-        "The server logged the expected messages",
-        logAppender,
-        loggedInOrder(
-            logEntry(
-                INFO, "Health socket server listening (socketPathname=" + socketPathname + ")"),
-            logEntry(DEBUG, "Health socket server thread interrupted"),
-            logEntry(
-                DEBUG,
-                "Health socket server cleaned up the socket file (socketPathname="
-                    + socketPathname
-                    + ")"),
-            logEntry(INFO, "Health socket server stopped")));
-  }
-
-  @DisplayName("HealthSocketServer.interrupt() executes safely when the server is not started")
-  @Test
-  @SuppressWarnings("resource")
-  void interruptWhenNotStarted() {
-    // ARRANGE
-    var server = server();
-
-    // ACT & ASSERT
-    assertDoesNotThrow(server::interrupt); // Interrupt the server thread
   }
 
   @DisplayName(
-      "HealthSocketServer.status() returns STOPPING when the server thread is not alive, but the still in the reference")
+      "HealthSocketServer.status() returns STOPPING" + " when the server thread is interrupted")
   @Test
-  @SuppressWarnings({"unchecked", "resource"})
-  void statusWhenServerThreadNotAlive() {
+  void statusWhenWorkerThreadIsInterrupted() {
     // ARRANGE
-    var serverThread = mock(Thread.class);
-    when(serverThread.isAlive()).thenReturn(false);
-
-    var serverThreadReference = mockServerThreadReference();
-    when(serverThreadReference.get()).thenReturn(serverThread);
-
+    var workerThread = mock(Thread.class);
+    var workerThreadReference = mockWorkerThreadReference();
     var server =
         new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), mockRuntime(), serverThreadReference);
+            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
+
+    when(workerThread.isAlive()).thenReturn(false);
+    when(workerThread.isInterrupted()).thenReturn(true);
+    when(workerThreadReference.get()).thenReturn(workerThread);
 
     // ACT
     var status = server.status(); // Get the status of the server
 
     // ASSERT
     assertThat(status, is(STOPPING));
+
+    // CLEANUP
+    server.close();
   }
 
   @DisplayName(
-      "HealthSocketServer.waitUntil() throws an exception when the server does not reach the expected status within the timeout")
+      "HealthSocketServer.status() returns STOPPING"
+          + " when the server thread is not alive, but the still in the reference")
+  @Test
+  void statusWhenWorkerThreadNotAlive() {
+    // ARRANGE
+    var workerThread = mock(Thread.class);
+    var workerThreadReference = mockWorkerThreadReference();
+    var server =
+        new HealthSocketServer(
+            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
+
+    when(workerThread.isAlive()).thenReturn(false);
+    when(workerThreadReference.get()).thenReturn(workerThread);
+
+    // ACT
+    var status = server.status(); // Get the status of the server
+
+    // ASSERT
+    assertThat(status, is(STOPPING));
+
+    // CLEANUP
+    server.close();
+  }
+
+  @DisplayName(
+      "HealthSocketServer.waitUntil() throws an exception"
+          + " when the server does not reach the expected status within the timeout")
   @Test
   void waitUntilTimeout() {
     // ARRANGE
     var timeout = java.time.Duration.ofMillis(1);
     var server = server();
-    var logAppender = attachLogAppenderTo(server);
 
-    // ACT & ASSERT
+    // ACT
     var exception =
         assertThrowsExactly(
-            HealthSocketServer.ServerStatusTimeoutException.class,
-            () -> server.waitUntil(RUNNING, timeout));
+            ServerStatusTimeoutException.class, () -> server.waitUntil(RUNNING, timeout));
 
+    // ASSERT
     assertThat(
         "The exception message is as expected",
         exception.getMessage(),
-        is(
-            "HealthSocketServer did not reach status RUNNING within 1 milliseconds, current status: STOPPED"));
+        is("Did not reach status RUNNING within 1 milliseconds, current status: STOPPED"));
 
-    assertThat(
-        "The server logged the expected messages",
-        logAppender,
-        loggedInOrder(
-            logEntry(
-                WARN,
-                "HealthSocketServer did not reach status RUNNING within 1 milliseconds, current status: STOPPED")));
+    // CLEANUP
+    server.close();
   }
 
   @DisplayName(
-      "HealthSocketServer.stop() interrupts the server thread and waits for it to terminate gracefully")
+      "HealthSocketServer.close() interrupts the server thread"
+          + " and waits for it to terminate gracefully")
   @Test
   @SneakyThrows
-  void stop() {
+  void close() {
     // ARRANGE
-    var serverThread = mock(Thread.class);
-    when(serverThread.isAlive()).thenReturn(true);
-
-    var serverThreadReference = mockServerThreadReference();
-    when(serverThreadReference.getAndSet(isNull())).thenReturn(serverThread);
-
+    var workerThread = mock(Thread.class);
+    var workerThreadReference = mockWorkerThreadReference();
     var server =
         new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), mockRuntime(), serverThreadReference);
+            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
+
+    when(workerThread.isAlive()).thenReturn(true, false);
+    when(workerThreadReference.get()).thenReturn(workerThread);
+    when(workerThreadReference.compareAndSet(workerThread, null)).thenReturn(true);
 
     // ACT
     server.close(); // Stop the server
 
     // ASSERT
-    verify(serverThread, times(1)).interrupt();
-    verify(serverThread, times(1)).join(any(Duration.class));
+    verify(workerThread, times(1)).interrupt();
+    verify(workerThread, times(1)).join(any(Duration.class));
   }
 
   @DisplayName(
-      "HealthSocketServer.stop() terminate gracefully even when the server thread is already terminated")
+      "HealthSocketServer.close() terminate gracefully"
+          + " even when the server thread is already terminated")
   @Test
   @SneakyThrows
-  void stopWhenServerThreadIsNotAlive() {
+  void closeWhenWorkerThreadIsNotAlive() {
     // ARRANGE
-    var serverThreadName = "health-socket-server-test-thread-" + randomUUID();
-    var serverThread = mock(Thread.class);
-    when(serverThread.isAlive()).thenReturn(false);
-    when(serverThread.getName()).thenReturn(serverThreadName);
-
-    var serverThreadReference = mockServerThreadReference();
-    when(serverThreadReference.getAndSet(isNull())).thenReturn(serverThread);
-
+    var workerThreadName = "health-socket-server-test-thread-" + randomUUID();
+    var workerThread = mock(Thread.class);
+    var workerThreadReference = mockWorkerThreadReference();
     var server =
         new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), mockRuntime(), serverThreadReference);
+            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
     var logAppender = attachLogAppenderTo(server);
 
+    when(workerThread.isAlive()).thenReturn(false);
+    when(workerThread.getName()).thenReturn(workerThreadName);
+    when(workerThreadReference.get()).thenReturn(workerThread);
+    when(workerThreadReference.compareAndSet(workerThread, null)).thenReturn(true);
+
     // ACT
-    server.close(); // Stop the server
-    logAppender.detach(); // Detach the log appender
+    server.close();
 
     // ASSERT
     assertThat(
-        "The server logged the expected messages",
+        "Logged messages are:",
         logAppender,
-        loggedInOrder(
-            logEntry(
-                DEBUG,
-                "Health socket server thread is already terminated, no need to interrupt (threadName="
-                    + serverThreadName
-                    + ")")));
+        loggedInOrder(logEntry(DEBUG, "Worker thread is already terminated: " + workerThreadName)));
+
+    // CLEANUP
+    logAppender.detach();
   }
 
-  @DisplayName("HealthSocketServer.stop() logs a warning when the socket file deletion fails")
+  @DisplayName("HealthSocketServer.close() logs a warning when the socket file deletion fails")
   @Test
   @SneakyThrows
-  void stopWhenSocketFileDeletionFails() {
+  void closeWhenSocketFileDeletionFails() {
     // ARRANGE
     var socketPath = socketPath();
     var runtime = mockRuntime();
+    var server =
+        new HealthSocketServer(socketPath, mockHealthEndpoint(), runtime, workerThreadReference());
+    var logAppender = attachLogAppenderTo(server);
+
     doThrow(new IOException("Simulated socket file deletion failure"))
         .when(runtime)
         .deleteIfExists(socketPath);
 
-    var server =
-        new HealthSocketServer(
-            socketPath, mockHealthEndpoint(), runtime, mockServerThreadReference());
-    var logAppender = attachLogAppenderTo(server);
+    server.start().waitUntil(RUNNING);
 
     // ACT
-    server.close(); // Stop the server
-    logAppender.detach(); // Detach the log appender
+    server.close();
 
     // ASSERT
     assertThat(
-        "The server logged the expected messages",
+        "Logged messages are:",
         logAppender,
-        loggedInOrder(
-            logEntry(
-                WARN,
-                "Health socket server socket file cleanup failed (socketPathname="
-                    + socketPath
-                    + ")")));
+        loggedInOrder(logEntry(WARN, "Socket file deletion failed: " + socketPath)));
+
+    // CLEANUP
+    logAppender.detach();
   }
 
   @DisplayName("HealthSocketServer server thread stops when socket channel creation fails")
@@ -508,30 +441,36 @@ class HealthSocketServerTest {
   void whenSocketChannelCreationFails() {
     // ARRANGE
     var runtime = mockRuntime();
+    var server =
+        new HealthSocketServer(
+            socketPath(), mockHealthEndpoint(), runtime, workerThreadReference());
+    var logAppender = attachLogAppenderTo(server);
+
     when(runtime.serverSocketChannel())
         .thenThrow(new IOException("Simulated socket channel creation failure"));
 
-    var server =
-        new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), runtime, serverThreadReference());
-    var logAppender = attachLogAppenderTo(server);
+    server.start();
 
     // ACT
-    server.start(); // Start the server
-    logAppender.detach();
+    server.waitUntil(STOPPED);
 
     // ASSERT
-    assertThat("The server is stopped", server.status(), is(STOPPED));
     assertThat(
-        "The server logged the expected messages",
+        "Logged messages are:",
         logAppender,
         loggedInOrder(
-            logEntry(ERROR, "Health socket server threw an IOException"),
-            logEntry(INFO, "Health socket server stopped")));
+            logEntry(ERROR, "Exception occurred"),
+            logEntry(DEBUG, "Interrupted"),
+            logEntry(DEBUG, "Socket file does not exist: " + server.socketPath()),
+            logEntry(INFO, "Stopped")));
+
+    // CLEANUP
+    logAppender.detach();
   }
 
   @DisplayName(
-      "HealthSocketServer logs the first five socket channel write failures at debug level, and subsequent failures as warning")
+      "HealthSocketServer logs the first five socket channel write failures at debug level,"
+          + " and subsequent failures as warning")
   @Test
   @SneakyThrows
   @SuppressWarnings("java:S2925")
@@ -539,53 +478,42 @@ class HealthSocketServerTest {
     // ARRANGE
     var server = server();
     var logAppender = attachLogAppenderTo(server);
+    server.start().waitUntil(RUNNING);
 
     // ACT
-    server
-        .start() // Start the server
-        .waitUntil(RUNNING); // Wait until the server is running
-
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-    readFrom(server.socketPath(), Duration.ofNanos(1)); // Read the response
-
-    sleep(10);
-
-    server
-        .stop() // Stop the server
-        .waitUntil(STOPPED); // Wait until the server is stopped
-    logAppender.detach(); // Detach the log appender
+    range(0, 7).forEach(_ -> readFrom(server.socketPath(), Duration.ofNanos(1)));
+    logAppender.flushLogs();
 
     // ASSERT
     assertThat(
-        "The server logged the expected messages",
+        "Logged messages are:",
         logAppender,
         loggedInOrder(
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(DEBUG, "Failed to write health response to client (consecutive failures: 1)"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(DEBUG, "Failed to write health response to client (consecutive failures: 2)"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(DEBUG, "Failed to write health response to client (consecutive failures: 3)"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(DEBUG, "Failed to write health response to client (consecutive failures: 4)"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(DEBUG, "Failed to write health response to client (consecutive failures: 5)"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(WARN, "Failed to write health response to client (consecutive failures: 6)"),
-            logEntry(DEBUG, "Health socket server accepted a connection"),
-            logEntry(WARN, "Failed to write health response to client (consecutive failures: 7)")));
+            logEntry(DEBUG, "Client connected"),
+            logEntry(DEBUG, "Failed to write response, consecutive failures: 1"),
+            logEntry(DEBUG, "Client connected"),
+            logEntry(DEBUG, "Failed to write response, consecutive failures: 2"),
+            logEntry(DEBUG, "Client connected"),
+            logEntry(DEBUG, "Failed to write response, consecutive failures: 3"),
+            logEntry(DEBUG, "Client connected"),
+            logEntry(DEBUG, "Failed to write response, consecutive failures: 4"),
+            logEntry(DEBUG, "Client connected"),
+            logEntry(DEBUG, "Failed to write response, consecutive failures: 5"),
+            logEntry(DEBUG, "Client connected"),
+            logEntry(WARN, "Failed to write response, consecutive failures: 6"),
+            logEntry(DEBUG, "Client connected"),
+            logEntry(WARN, "Failed to write response, consecutive failures: 7")));
+
+    // CLEANUP
+    server.close();
+    logAppender.detach();
   }
 
   private @NonNull HealthSocketServer server() {
     return serverBuilder().build();
   }
 
-  private HealthSocketServer.HealthSocketServerBuilder serverBuilder() {
+  private HealthSocketServerBuilder serverBuilder() {
     return HealthSocketServer.builder()
         .socketPath(socketPath())
         .healthEndpoint(mockHealthEndpoint());
@@ -617,19 +545,27 @@ class HealthSocketServerTest {
     return healthDescriptor;
   }
 
-  private HealthSocketServer.Runtime mockRuntime() {
-    var runtime = mock(HealthSocketServer.Runtime.class);
-    when(runtime.serverThreadFactory())
+  @SneakyThrows
+  private Runtime mockRuntime() {
+    var runtime = mock(Runtime.class);
+    when(runtime.workerThreadFactory())
         .thenReturn(ofVirtual().name("health-socket-server-test-thread-" + randomUUID()).factory());
+    when(runtime.serverSocketChannel()).thenReturn(ServerSocketChannel.open(UNIX));
+    when(runtime.deleteIfExists(any(Path.class)))
+        .thenAnswer(
+            invocation -> {
+              Path path = invocation.getArgument(0);
+              return deleteIfExists(path);
+            });
     return runtime;
   }
 
-  private @NotNull AtomicReference<Thread> serverThreadReference() {
+  private @NotNull AtomicReference<Thread> workerThreadReference() {
     return new AtomicReference<>();
   }
 
   @SuppressWarnings("unchecked")
-  private @NonNull AtomicReference<Thread> mockServerThreadReference() {
+  private @NonNull AtomicReference<Thread> mockWorkerThreadReference() {
     return (AtomicReference<Thread>) mock(AtomicReference.class);
   }
 

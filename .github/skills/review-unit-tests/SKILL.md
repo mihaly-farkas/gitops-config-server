@@ -1,9 +1,9 @@
 ---
-name: review-behavior-tests
-description: Review the behavior tests
+name: review-unit-tests
+description: Review the unit tests
 ---
 
-# Review Behavior Tests
+# Review Unit Tests
 
 ## Overview
 
@@ -39,7 +39,7 @@ Only after Phase 2 is done, proceed the task.
 
 ### Objective
 
-Review ONLY the Java test files located directly within the `{project-root}/src/test/java/io/github/mihaly_farkas/gitops_config_server/` directory. Do NOT look into subdirectories or any other folders.
+Review ONLY the Java test files located in subdirectories of `{project-root}/src/test/java/io/github/mihaly_farkas/gitops_config_server/`, at any directory depth. Do NOT review any Java test files located directly in `{project-root}/src/test/java/io/github/mihaly_farkas/gitops_config_server/` itself, and do NOT look into any directories outside this directory tree.
 
 ### Out of Scope
 
@@ -51,16 +51,5 @@ Do not review or flag purely cosmetic formatting issues. Line breaks, indentatio
 2. **Annotations:** Verify that the execution order of annotations and their internal values follow a consistent pattern.
 3. **Naming Conventions:** Check for strict consistency in method, variable, and class naming conventions.
 4. **Structure (AAA Pattern):** Confirm test methods are well-structured, isolated, and strictly follow the Arrange-Act-Assert (AAA) phase pattern.
-
-- **ACT & ASSERT:** The `// ACT & ASSERT` pattern for MockMvc fluent API calls is valid and considered a best practice.
-  - **✅ Examples of valid usage:**
-    - ```
-         // ACT & ASSERT
-         mockMvc
-           .perform(get(endpoint))
-           .andExpect(status().isOk());
-         ```
-
-5. **Spring MockMvc Best Practices:** Ensure proper and idiomatic usage of `MockMvcRequestBuilders` and `MockMvcResultMatchers`.
-6. **Assertions & Errors:** Check for robust, explicit assertions and proper exception/error handling to verify outcomes.
-7. **Opinionated Patterns:** Verify that architectural preferences and opinionated design patterns are applied consistently across all test classes, avoiding mixed approaches.
+5. **Assertions & Errors:** Check for robust, explicit assertions and proper exception/error handling to verify outcomes.
+6. **Opinionated Patterns:** Verify that architectural preferences and opinionated design patterns are applied consistently across all test classes, avoiding mixed approaches.

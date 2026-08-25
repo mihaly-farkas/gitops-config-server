@@ -1,8 +1,10 @@
 package io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component;
 
-import static java.lang.Boolean.TRUE;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.ApplicationStatus.HEALTHY;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.ApplicationStatus.UNHEALTHY;
 import static java.net.StandardProtocolFamily.UNIX;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.springframework.boot.health.contributor.Status.UP;
@@ -17,8 +19,10 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Builder;
@@ -29,8 +33,8 @@ import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
  * Lightweight Unix domain socket health server.
  *
  * <p>This component exposes application health over a Unix domain socket by returning a single-byte
- * response: {@code H} for healthy and {@code U} for unhealthy. The value is derived from Spring
- * Boot Actuator's {@link HealthEndpoint}.
+ * response: {@code H} for healthy and {@code U} for unhealthy. This value is backed by Spring Boot
+ * Actuator's {@link HealthEndpoint}.
  *
  * <p>The design targets containerized deployments where a minimal health check mechanism is
  * preferred over HTTP. In hardened images, tools such as {@code curl} or {@code wget} may be
@@ -43,21 +47,19 @@ import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 @Slf4j
 public class HealthSocketServer implements AutoCloseable {
 
+  /**
+   * Default name of the worker thread.
+   *
+   * <p>If no thread builder is provided via the {@link
+   * HealthSocketServerBuilder#virtualThreadBuilder} method, the server creates a default builder
+   * and uses this name for the created threads.
+   */
   public static final String DEFAULT_THREAD_NAME = "health-socket-server";
 
-  /** Response byte representing a healthy application state. */
-  private static final char APPLICATION_STATUS_HEALTHY = 'H';
+  /** Log message for exceptions. */
+  private static final String LOG_MESSAGE_EXCEPTION_OCCURRED = "Exception occurred";
 
-  /** Response byte representing an unhealthy application state. */
-  private static final char APPLICATION_STATUS_UNHEALTHY = 'U';
-
-  /**
-   * Timeout duration for shutting down the server thread gracefully.
-   *
-   * <p>If the server thread does not terminate within this duration after being interrupted, it
-   * will be forcefully terminated. This ensures that the application can shut down cleanly without
-   * hanging indefinitely due to a stuck server thread.
-   */
+  /** Default timeout used by {@link #close()}. */
   private static final Duration DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT = Duration.ofMillis(3000);
 
   /** Default timeout used by {@link #waitUntil(Status)}. */
@@ -68,9 +70,9 @@ public class HealthSocketServer implements AutoCloseable {
    * considers the connection unhealthy and logs a warning.
    *
    * <p>This threshold helps to avoid flooding the logs with repeated write failures while still
-   * alerting to potential issues.
+   * flagging potential issues.
    */
-  private static final int DEFAULT_MAX_FAILED_WRITE_COUNT = 5;
+  private static final int FAILED_WRITE_COUNT_THRESHOLD = 5;
 
   /** Filesystem path of the Unix domain socket. */
   @NotNull private final Path socketPath;
@@ -82,42 +84,48 @@ public class HealthSocketServer implements AutoCloseable {
    * Runtime abstraction to facilitate testing and allow for different implementations of virtual
    * thread creation and socket channel management.
    */
-  private final Runtime runtime;
+  @NotNull private final Runtime runtime;
 
   /**
    * Reference to the thread running the health socket server, allowing for controlled shutdown and
    * resource cleanup.
    */
-  private final AtomicReference<Thread> serverThreadReference;
+  @NotNull private final AtomicReference<Thread> workerThreadReference;
 
   /**
    * Monitor object used by {@link #waitUntil(Status, Duration)} for status-change notifications.
    */
-  private final Object statusMonitor = new Object();
+  @NotNull private final Object statusMonitor = new Object();
 
   /** Tracks whether the Unix domain socket is currently bound and accepting connections. */
-  private final AtomicReference<Boolean> socketBound = new AtomicReference<>(false);
+  @NotNull private final AtomicBoolean socketReady = new AtomicBoolean(false);
 
   /**
    * Constructs a new HealthSocketServer with the specified health endpoint and socket path.
    *
    * @param socketPath the filesystem path of the Unix domain socket
    * @param healthEndpoint the health endpoint used to obtain the current application health status
-   * @param virtualThreadBuilder the virtual thread builder used to create the server thread
+   * @param virtualThreadBuilder the virtual thread builder used to create the worker thread
    */
   @Builder
   public HealthSocketServer(
       Path socketPath,
       HealthEndpoint healthEndpoint,
       Thread.Builder.OfVirtual virtualThreadBuilder) {
-    if (virtualThreadBuilder == null) {
-      virtualThreadBuilder = Thread.ofVirtual().name(DEFAULT_THREAD_NAME);
+    if (isNull(socketPath)) {
+      throw new IllegalArgumentException("socketPath must not be null");
+    }
+    if (isNull(healthEndpoint)) {
+      throw new IllegalArgumentException("healthEndpoint must not be null");
     }
 
     this(
         socketPath,
         healthEndpoint,
-        new DefaultRuntime(virtualThreadBuilder),
+        new DefaultRuntime(
+            Objects.isNull(virtualThreadBuilder)
+                ? Thread.ofVirtual().name(DEFAULT_THREAD_NAME)
+                : virtualThreadBuilder),
         new AtomicReference<>(null));
   }
 
@@ -128,129 +136,45 @@ public class HealthSocketServer implements AutoCloseable {
    * @param healthEndpoint the health endpoint used to obtain the current application health status
    * @param runtime the runtime abstraction for virtual thread creation and socket channel
    *     management
-   * @param serverThreadReference the atomic reference to the thread running the health socket
+   * @param workerThreadReference the atomic reference to the thread running the health socket
    *     server
    */
   HealthSocketServer(
       Path socketPath,
       HealthEndpoint healthEndpoint,
       Runtime runtime,
-      AtomicReference<Thread> serverThreadReference) {
-
-    if (socketPath == null) {
-      throw new IllegalArgumentException("socketPath cannot be null");
-    }
-
-    if (healthEndpoint == null) {
-      throw new IllegalArgumentException("healthEndpoint cannot be null");
-    }
-
+      AtomicReference<Thread> workerThreadReference) {
     this.healthEndpoint = healthEndpoint;
     this.socketPath = socketPath;
     this.runtime = runtime;
-    this.serverThreadReference = serverThreadReference;
+    this.workerThreadReference = workerThreadReference;
   }
 
   /**
-   * Starts the health socket server in a virtual thread.
+   * Starts the health socket server.
    *
-   * <p>The server listens for incoming connections on the specified Unix domain socket and responds
-   * with the current health status.
+   * <p>The server listens for incoming connections on the specified Unix socket and responds with
+   * the current health status.
    */
   @PostConstruct
   public HealthSocketServer start() {
-    var existingThread = serverThreadReference.get();
+    var existingThread = workerThreadReference.get();
 
     if (existingThread != null) {
-      log.warn("Health socket server is already running (threadName={})", existingThread.getName());
+      log.warn("Already running, worker thread name: {}", existingThread.getName());
       return this;
     }
 
-    var newServerThread = this.runtime.serverThreadFactory().newThread(new ServerProcess());
-    if (serverThreadReference.compareAndSet(null, newServerThread)) {
+    var newWorkerThread = this.runtime.workerThreadFactory().newThread(new WorkerProcess());
+
+    if (workerThreadReference.compareAndSet(null, newWorkerThread)) {
       signalStatusChange();
-      newServerThread.start();
+      newWorkerThread.start();
     } else {
-      log.warn(
-          "Health socket server is already running (threadName={})",
-          serverThreadReference.get().getName());
+      log.warn("Already running, worker thread name: {}", workerThreadReference.get().getName());
     }
 
     return this;
-  }
-
-  /**
-   * Returns the name of the server thread, if running.
-   *
-   * @return an {@link Optional} containing the thread name if the server thread is running,
-   *     otherwise empty
-   */
-  public Optional<String> serverThreadName() {
-    var thread = serverThreadReference.get();
-    return thread != null ? Optional.of(thread.getName()) : Optional.empty();
-  }
-
-  /**
-   * Interrupts the server thread.
-   *
-   * <p>This method requests graceful termination of the server. The thread must be stopped via
-   * {@link #stop()} or {@link #close()} to ensure proper resource cleanup.
-   *
-   * @return this instance for method chaining
-   */
-  public HealthSocketServer interrupt() {
-    var thread = serverThreadReference.get();
-    if (thread != null) {
-      thread.interrupt();
-      signalStatusChange();
-    }
-    return this;
-  }
-
-  /**
-   * Stops the health socket server thread and cleans up the Unix domain socket file.
-   *
-   * <p>This method interrupts the server thread and waits for it to terminate gracefully. If the
-   * thread does not terminate within the specified timeout, a warning is logged.
-   */
-  @Override
-  @SuppressWarnings("resource")
-  public void close() {
-    stop();
-  }
-
-  /**
-   * Stops the health socket server thread and cleans up the Unix domain socket file.
-   *
-   * <p>This method interrupts the server thread and waits for it to terminate gracefully. If the
-   * thread does not terminate within the specified timeout, a warning is logged.
-   *
-   * @return this instance for method chaining
-   */
-  public HealthSocketServer stop() {
-    stopServerThread();
-    cleanUpSocketFile();
-    return this;
-  }
-
-  /**
-   * Returns the current status of the health socket server.
-   *
-   * @return the current status
-   */
-  public Status status() {
-    var serverThread = serverThreadReference.get();
-    if (serverThread == null) {
-      return Status.STOPPED;
-    } else if (serverThread.isAlive() && !serverThread.isInterrupted()) {
-      if (TRUE.equals(socketBound.get())) {
-        return Status.RUNNING;
-      } else {
-        return Status.STARTING;
-      }
-    } else {
-      return Status.STOPPING;
-    }
   }
 
   /**
@@ -271,46 +195,39 @@ public class HealthSocketServer implements AutoCloseable {
    * Waits for the server to reach the specified status with a custom timeout.
    *
    * <p>This method blocks the caller until the server reaches the expected status or the specified
-   * timeout expires. It blocks efficiently and wakes up on status changes.
+   * timeout expires.
    *
-   * @param status the target status to wait for
-   * @param timeout the maximum duration to wait for the target status
+   * @param expectedStatus the expected status to wait for
+   * @param timeout the maximum duration to wait
    * @return this instance for method chaining
-   * @throws ServerStatusTimeoutException if the target status is not reached within the specified
+   * @throws ServerStatusTimeoutException if the expected status is not reached within the specified
    *     timeout
    */
-  public HealthSocketServer waitUntil(Status status, Duration timeout) throws InterruptedException {
+  public HealthSocketServer waitUntil(Status expectedStatus, Duration timeout)
+      throws InterruptedException {
     long deadlineNanos = System.nanoTime() + timeout.toNanos();
 
     synchronized (statusMonitor) {
-      while (System.nanoTime() < deadlineNanos && this.status() != status) {
+      while (this.status() != expectedStatus) {
         long remainingNanos = deadlineNanos - System.nanoTime();
+        if (remainingNanos <= 0) {
+          break;
+        }
         long waitMillis = NANOSECONDS.toMillis(remainingNanos);
-        int waitNanos = (int) (remainingNanos - MILLISECONDS.toNanos(waitMillis));
-
+        int waitNanos = (int) Math.max(0L, remainingNanos - MILLISECONDS.toNanos(waitMillis));
         statusMonitor.wait(waitMillis, waitNanos);
       }
     }
 
-    if (this.status() != status) {
-      log.warn(
-          "HealthSocketServer did not reach status {} within {} milliseconds, current status: {}",
-          status,
-          timeout.toMillis(),
-          this.status());
-      throw new ServerStatusTimeoutException(
-          "HealthSocketServer did not reach status "
-              + status
-              + " within "
-              + timeout.toMillis()
-              + " milliseconds, current status: "
-              + this.status());
+    if (this.status() != expectedStatus) {
+      throw new ServerStatusTimeoutException(expectedStatus, timeout, this.status());
     }
+
     return this;
   }
 
   /**
-   * Returns the filesystem path of the Unix domain socket used by the health socket server.
+   * Returns the filesystem path of the Unix socket.
    *
    * @return the socket path
    */
@@ -319,39 +236,66 @@ public class HealthSocketServer implements AutoCloseable {
   }
 
   /**
-   * Stops the running server thread, if present, using cooperative interruption.
+   * Returns the current status.
    *
-   * <p>The method clears the shared thread reference first to avoid races with subsequent {@link
-   * #start()} calls. If a live thread exists, it is interrupted and the method waits up to {@link
-   * #DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT} for termination.
+   * @return the current status
    */
-  private void stopServerThread() {
-    var serverThread = serverThreadReference.getAndSet(null);
-    if (serverThread != null) {
+  public Status status() {
+    var workerThread = workerThreadReference.get();
+    if (workerThread == null) {
+      return Status.STOPPED;
+    } else if (workerThread.isAlive() && !workerThread.isInterrupted()) {
+      if (socketReady.get()) {
+        return Status.RUNNING;
+      } else {
+        return Status.STARTING;
+      }
+    } else {
+      return Status.STOPPING;
+    }
+  }
+
+  /**
+   * Returns the name of the worker thread, if running.
+   *
+   * @return an {@link Optional} containing the thread name if the worker thread is running,
+   *     otherwise empty
+   */
+  public Optional<String> workerThreadName() {
+    var thread = workerThreadReference.get();
+    return isNull(thread) ? Optional.empty() : Optional.of(thread.getName());
+  }
+
+  /** Stops the worker thread. */
+  @Override
+  public void close() {
+    var workerThread = workerThreadReference.get();
+    if (workerThread != null) {
       signalStatusChange();
-      if (serverThread.isAlive()) {
-        serverThread.interrupt();
+      if (workerThread.isAlive()) {
+        workerThread.interrupt();
         signalStatusChange();
         try {
-          serverThread.join(DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT);
-          if (serverThread.isAlive()) {
+          workerThread.join(DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT);
+          if (workerThread.isAlive()) {
             log.warn(
-                "HealthSocketServer thread failed to terminate within {} ms timeout",
-                DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT);
+                "Worker thread failed to terminate within {} milliseconds",
+                DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT.toMillis());
+          } else {
+            workerThreadReference.compareAndSet(workerThread, null);
           }
         } catch (InterruptedException e) {
-          log.debug("Interrupted while waiting for health socket server thread to terminate", e);
-          serverThread.interrupt();
+          workerThread.interrupt();
+          log.debug(LOG_MESSAGE_EXCEPTION_OCCURRED, e);
         }
       } else {
-        log.debug(
-            "Health socket server thread is already terminated, no need to interrupt (threadName={})",
-            serverThread.getName());
+        log.debug("Worker thread is already terminated: {}", workerThread.getName());
+        workerThreadReference.compareAndSet(workerThread, null);
       }
     }
   }
 
-  /** Wakes threads waiting in {@link #waitUntil(Status, Duration)} after a status transition. */
+  /** Wakes the threads waiting for a server status transition. */
   private void signalStatusChange() {
     synchronized (statusMonitor) {
       statusMonitor.notifyAll();
@@ -359,32 +303,59 @@ public class HealthSocketServer implements AutoCloseable {
   }
 
   /**
-   * Removes the Unix domain socket file from the filesystem, if it exists.
+   * Represents the health status of the application.
    *
-   * <p>Cleanup failures are intentionally non-fatal and only logged because stale socket files do
-   * not affect the current JVM process once shutdown is in progress.
+   * <p>Each status has a single-character representation used by the health socket protocol and a
+   * human-readable textual representation.
    */
-  private void cleanUpSocketFile() {
-    try {
-      var result = runtime.deleteIfExists(socketPath);
-      if (result) {
-        log.debug(
-            "Health socket server cleaned up the socket file (socketPathname={})", socketPath);
-      } else {
-        log.debug(
-            "Health socket server socket file is already deleted (socketPathname={})", socketPath);
-      }
-    } catch (IOException e) {
-      log.warn(
-          "Health socket server socket file cleanup failed (socketPathname={})", socketPath, e);
+  public enum ApplicationStatus {
+
+    /** The application is healthy and operating normally. */
+    HEALTHY('H', "healthy"),
+
+    /** The application is unhealthy and should be considered unavailable. */
+    UNHEALTHY('U', "unhealthy");
+
+    private final char statusChar;
+    private final String statusText;
+
+    ApplicationStatus(char statusChar, String statusText) {
+      this.statusChar = statusChar;
+      this.statusText = statusText;
+    }
+
+    /**
+     * Returns the single-character representation of this status.
+     *
+     * @return the status character
+     */
+    public char statusChar() {
+      return statusChar;
+    }
+
+    /**
+     * Returns the human-readable textual representation of this status.
+     *
+     * @return the status text
+     */
+    public String statusText() {
+      return statusText;
     }
   }
 
-  /** Possible states of the health socket server. */
+  /** Represents the lifecycle state of the health socket server. */
   public enum Status {
+
+    /** The health socket server has been stopped and is not running. */
     STOPPED,
+
+    /** The health socket server is starting and is not yet ready to serve requests. */
     STARTING,
+
+    /** The health socket server is running and ready to serve requests. */
     RUNNING,
+
+    /** The health socket server is shutting down and is no longer starting new work. */
     STOPPING
   }
 
@@ -395,15 +366,16 @@ public class HealthSocketServer implements AutoCloseable {
    * fakes for thread creation and filesystem/network interactions.
    */
   interface Runtime {
+
     /**
-     * Returns the thread factory used to create the server thread.
+     * Returns the thread factory used to create the long-running worker thread.
      *
      * @return thread factory for server execution
      */
-    ThreadFactory serverThreadFactory();
+    ThreadFactory workerThreadFactory();
 
     /**
-     * Opens a server socket channel for Unix domain socket communication.
+     * Opens a server socket channel for Unix socket communication.
      *
      * @return an opened, unbound server socket channel
      * @throws IOException if channel creation fails
@@ -422,11 +394,11 @@ public class HealthSocketServer implements AutoCloseable {
   /** Default production {@link Runtime} implementation backed by JDK virtual threads and NIO. */
   static class DefaultRuntime implements Runtime {
 
-    /** Thread factory used to spawn the long-running server loop thread. */
+    /** Thread factory used to create the long-running worker thread. */
     private final ThreadFactory threadFactory;
 
     /**
-     * Creates a runtime using the supplied virtual thread builder.
+     * Constructs a new runtime using the supplied virtual thread builder.
      *
      * @param virtualThreadBuilder virtual thread builder to derive a thread factory from
      */
@@ -436,7 +408,7 @@ public class HealthSocketServer implements AutoCloseable {
 
     /** {@inheritDoc} */
     @Override
-    public ThreadFactory serverThreadFactory() {
+    public ThreadFactory workerThreadFactory() {
       return threadFactory;
     }
 
@@ -453,62 +425,104 @@ public class HealthSocketServer implements AutoCloseable {
     }
   }
 
+  /**
+   * Thrown when the health socket server does not reach the expected status within the specified
+   * timeout.
+   */
   public static class ServerStatusTimeoutException extends RuntimeException {
-    public ServerStatusTimeoutException(String message) {
-      super(message);
+
+    /**
+     * Constructs a new exception for a server status timeout.
+     *
+     * @param expectedStatus the status the server was expected to reach
+     * @param timeout the maximum amount of time allowed to reach the expected status
+     * @param currentStatus the status of the server when the timeout occurred
+     */
+    public ServerStatusTimeoutException(
+        HealthSocketServer.Status expectedStatus,
+        Duration timeout,
+        HealthSocketServer.Status currentStatus) {
+      super(
+          "Did not reach status "
+              + expectedStatus
+              + " within "
+              + timeout.toMillis()
+              + " milliseconds, current status: "
+              + currentStatus);
     }
   }
 
-  /**
-   * Accept loop runnable for the Unix domain socket server.
-   *
-   * <p>Each accepted client receives exactly one byte representing the current health state.
-   */
-  class ServerProcess implements Runnable {
+  /** Worker process responsible for accepting connections on the Unix socket. */
+  class WorkerProcess implements Runnable {
 
-    /** Counts consecutive client write failures to support thresholded warning logs. */
+    /** Scoped value holding the reference to the thread running this runnable. */
+    private static final ScopedValue<Thread> THREAD = ScopedValue.newInstance();
+
+    /** Counts consecutive client write failures. */
     private final AtomicInteger failedWriteCount = new AtomicInteger(0);
 
-    /**
-     * Runs the blocking accept loop until interrupted or an unrecoverable I/O failure occurs.
-     *
-     * <p>Socket file cleanup is always attempted in a {@code finally} block.
-     */
+    /** Runs the worker process. */
     @Override
     public void run() {
-      var thread = Thread.currentThread();
+      ScopedValue.where(THREAD, Thread.currentThread()).run(this::runListenerLoop);
+    }
 
-      try (var serverSocket = runtime.serverSocketChannel()) {
-        var address = UnixDomainSocketAddress.of(socketPath);
-        serverSocket.bind(address);
-        setSocketBound(true);
-        log.info("Health socket server listening (socketPathname={})", socketPath);
-        while (!thread.isInterrupted()) {
-          listenOn(serverSocket);
+    /**
+     * Runs the worker process.
+     *
+     * <ul>
+     *   <li>Creates and binds the Unix socket.
+     *   <li>Continuously listens for incoming connections until interrupted.
+     *   <li>Handles interruption and I/O failures.
+     *   <li>Cleans up the socket resources when the worker terminates.
+     * </ul>
+     */
+    private void runListenerLoop() {
+      try (var socket = socket()) {
+        bind(socket);
+        while (isNotInterrupted()) {
+          listenOn(socket);
         }
-        log.debug("Health socket server thread interrupted");
       } catch (ClosedByInterruptException e) {
-        log.debug("Health socket server thread interrupted", e);
+        log.debug(LOG_MESSAGE_EXCEPTION_OCCURRED, e);
       } catch (IOException e) {
-        log.error("Health socket server threw an IOException", e);
-        thread.interrupt();
+        log.error(LOG_MESSAGE_EXCEPTION_OCCURRED, e);
       } finally {
-        setSocketBound(false);
-        close();
-        log.info("Health socket server stopped");
+        cleanUp();
       }
     }
 
     /**
-     * Updates the socket-bound flag and notifies waiters when the effective status changes.
+     * Opens the server socket channel.
      *
-     * @param value new bound-state value
+     * @return the opened server socket channel
+     * @throws IOException if an I/O error occurs while opening the channel
      */
-    private void setSocketBound(boolean value) {
-      var previous = socketBound.getAndSet(value);
-      if (!previous.equals(value)) {
-        signalStatusChange();
-      }
+    private ServerSocketChannel socket() throws IOException {
+      return runtime.serverSocketChannel();
+    }
+
+    /**
+     * Binds the server socket channel's socket to a local address.
+     *
+     * @param serverSocket the server socket channel to bind
+     * @throws IOException if an I/O error occurs while binding the socket
+     */
+    private void bind(ServerSocketChannel serverSocket) throws IOException {
+      var address = UnixDomainSocketAddress.of(socketPath); // Creates the socket address
+      serverSocket.bind(address); // Binds the socket to the address
+      setSocketReady(true); // Updates the socket ready flag
+
+      log.info("Listening on: {}", socketPath);
+    }
+
+    /**
+     * Tests whether the runner thread has been interrupted.
+     *
+     * @return {@code true} if the thread has not been interrupted; {@code false} otherwise
+     */
+    private boolean isNotInterrupted() {
+      return !THREAD.get().isInterrupted();
     }
 
     /**
@@ -519,7 +533,7 @@ public class HealthSocketServer implements AutoCloseable {
      */
     private void listenOn(ServerSocketChannel serverSocket) throws IOException {
       try (var clientSocket = serverSocket.accept()) {
-        log.debug("Health socket server accepted a connection");
+        log.debug("Client connected");
         processConnection(clientSocket);
       }
     }
@@ -527,43 +541,94 @@ public class HealthSocketServer implements AutoCloseable {
     /**
      * Handles a single client socket connection.
      *
-     * <p>The method maps the current actuator health to one response byte: {@code H} for {@code
-     * UP}, otherwise {@code U}. Any exception while reading health or writing to the socket results
-     * in an unhealthy response or warning log.
+     * <p>The method maps the current actuator health to one response byte: {@link
+     * ApplicationStatus#HEALTHY} for {@link org.springframework.boot.health.contributor.Status#UP
+     * }, otherwise {@link ApplicationStatus#UNHEALTHY}.
+     *
+     * <p>Any exception while reading health or writing to the socket results in an {@link
+     * ApplicationStatus#UNHEALTHY} response.
      *
      * @param socket accepted client socket
      */
-    void processConnection(SocketChannel socket) {
-      char response;
+    private void processConnection(SocketChannel socket) {
+      ApplicationStatus response;
 
       try {
         var health = healthEndpoint.health();
         var healthStatus = health.getStatus();
-        response =
-            healthStatus.equals(UP) ? APPLICATION_STATUS_HEALTHY : APPLICATION_STATUS_UNHEALTHY;
+        response = UP.equals(healthStatus) ? HEALTHY : UNHEALTHY;
       } catch (Exception e) {
-        log.warn("Exception occurred while checking health status, responding with UNHEALTHY", e);
-        response = APPLICATION_STATUS_UNHEALTHY;
+        log.error(LOG_MESSAGE_EXCEPTION_OCCURRED, e);
+        response = UNHEALTHY;
       }
 
       try {
-        socket.write(ByteBuffer.wrap(String.valueOf(response).getBytes(US_ASCII)));
-        log.debug("Health socket server sent response (response={})", response);
+        socket.write(ByteBuffer.wrap(String.valueOf(response.statusChar()).getBytes(US_ASCII)));
+        log.debug("Response sent: '{}' ({})", response.statusChar(), response.statusText());
         failedWriteCount.set(0);
       } catch (IOException e) {
         var currentFailedCount = failedWriteCount.incrementAndGet();
-        if (currentFailedCount > DEFAULT_MAX_FAILED_WRITE_COUNT) {
-          log.warn(
-              "Failed to write health response to client (consecutive failures: {})",
-              currentFailedCount,
-              e);
+        if (currentFailedCount > FAILED_WRITE_COUNT_THRESHOLD) {
+          log.warn("Failed to write response, consecutive failures: {}", currentFailedCount, e);
         } else {
-          log.debug(
-              "Failed to write health response to client (consecutive failures: {})",
-              currentFailedCount,
-              e);
+          log.debug("Failed to write response, consecutive failures: {}", currentFailedCount, e);
         }
       }
+    }
+
+    /** Performs cleanup. */
+    private void cleanUp() {
+      closeThread();
+      setSocketReady(false);
+      cleanUpSocketFile();
+      removeThreadReference();
+    }
+
+    /**
+     * Updates the socket ready flag and signals any waiting threads about the status change.
+     *
+     * @param socketReadyStatus new value of the socket ready flag
+     */
+    private void setSocketReady(boolean socketReadyStatus) {
+      var previous = socketReady.getAndSet(socketReadyStatus);
+      if (previous != socketReadyStatus) {
+        signalStatusChange();
+      }
+    }
+
+    /** Ensures the worker thread is marked as interrupted. */
+    private void closeThread() {
+      THREAD.get().interrupt();
+      log.debug("Interrupted");
+    }
+
+    /**
+     * Removes the Unix domain socket file from the filesystem, if it exists.
+     *
+     * <p>Cleanup failures are intentionally non-fatal and only logged because stale socket files do
+     * not affect the current JVM process once shutdown is in progress.
+     */
+    private void cleanUpSocketFile() {
+      try {
+        var result = runtime.deleteIfExists(socketPath);
+        if (result) {
+          log.debug("Socket file deleted: {}", socketPath);
+        } else {
+          log.debug("Socket file does not exist: {}", socketPath);
+        }
+      } catch (IOException e) {
+        log.warn("Socket file deletion failed: {}", socketPath, e);
+      }
+    }
+
+    /**
+     * Removes the reference to the worker thread and signals any waiting threads about the status
+     * change.
+     */
+    private void removeThreadReference() {
+      workerThreadReference.set(null);
+      signalStatusChange();
+      log.info("Stopped");
     }
   }
 }

@@ -10,7 +10,7 @@ public final class MockitoHelper {
     try {
       verifyBlock.run();
     } catch (AssertionError e) {
-      // Új hibát dobunk a saját üzenetünkkel, megőrizve az eredeti Mockito nyomkövetést
+      // Re-throw with our own message while preserving the original Mockito stack trace.
       throw new AssertionError(message + "\nDetails: " + e.getMessage(), e);
     }
   }

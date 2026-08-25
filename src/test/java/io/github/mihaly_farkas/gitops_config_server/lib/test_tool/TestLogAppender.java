@@ -8,6 +8,7 @@ import ch.qos.logback.core.AppenderBase;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.LockSupport;
+import org.apache.logging.log4j.LogManager;
 import org.slf4j.LoggerFactory;
 
 public class TestLogAppender extends AppenderBase<ILoggingEvent> {
@@ -73,5 +74,10 @@ public class TestLogAppender extends AppenderBase<ILoggingEvent> {
     }
 
     return description.toString();
+  }
+
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  public void flushLogs() {
+    LogManager.getFactory();
   }
 }
