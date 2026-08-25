@@ -1,10 +1,10 @@
 
  ${AnsiColor.CYAN}===============================================${AnsiStyle.NORMAL}
- ${AnsiColor.CYAN}${spring-boot-config-server.name.human-readable:${spring.application.name}}${AnsiStyle.NORMAL}
+ ${AnsiColor.CYAN}${spring-cloud-config-server.name.human-readable:${spring.application.name}}${AnsiStyle.NORMAL}
  ${AnsiColor.CYAN}===============================================${AnsiStyle.NORMAL}
 
- ${AnsiColor.WHITE}:: Spring Boot Config Server :: (v${spring-boot-config-server.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.WHITE}:: Spring Boot Config Server :: (v${spring-cloud-config-server.version})${AnsiStyle.NORMAL}
  ${AnsiColor.GREEN}:: Spring Boot          :: (v${spring-boot.version})${AnsiStyle.NORMAL}
- ${AnsiColor.GREEN}:: Spring Security      :: (v${spring-boot-config-server.bom.spring-security.version})${AnsiStyle.NORMAL}
- ${AnsiColor.GREEN}:: Spring Cloud         :: (v${spring-boot-config-server.bom.spring-cloud.version})${AnsiStyle.NORMAL}
- ${AnsiColor.MAGENTA}:: Tomcat               :: (v${spring-boot-config-server.bom.tomcat.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.GREEN}:: Spring Security      :: (v${spring-cloud-config-server.bom.spring-security.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.GREEN}:: Spring Cloud         :: (v${spring-cloud-config-server.bom.spring-cloud.version})${AnsiStyle.NORMAL}
+ ${AnsiColor.MAGENTA}:: Tomcat               :: (v${spring-cloud-config-server.bom.tomcat.version})${AnsiStyle.NORMAL}

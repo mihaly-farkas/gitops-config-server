@@ -21,14 +21,14 @@ source .github/workflows/utils/ansi-colors.sh
 
 # Run the Docker container
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
-echo "${MESSAGE_COLOR}Running spring-boot-config-server container...${RESET_COLORS}"
+echo "${MESSAGE_COLOR}Running spring-cloud-config-server container...${RESET_COLORS}"
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
 set -x
 docker run \
-  --name spring-boot-config-server \
+  --name spring-cloud-config-server \
   --publish 8888:8888 \
-  ghcr.io/mihaly-farkas/spring-boot-config-server:local \
-  --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
+  ghcr.io/mihaly-farkas/spring-cloud-config-server:local \
+  --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-cloud-config-server-example' \
   --spring.cloud.config.server.git.default-label='main' \
   --encrypt.key='3x4mp13_r3p0_S3cur3_3Nc1pT1on_k3Y' \
   --logging.level.io.github.mihaly_farkas.spring_boot_config_server=DEBUG

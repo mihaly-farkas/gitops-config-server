@@ -18,14 +18,14 @@ Feature: Docker
   requests before dependent services boot up.
 
     Given Docker is running on my machine
-    When  if the "spring-boot-config-server.minimal" container is not running, I start a container with:
+    When  if the "spring-cloud-config-server.minimal" container is not running, I start a container with:
       """
       docker run \
-        --name spring-boot-config-server.minimal \
+        --name spring-cloud-config-server.minimal \
         --publish 8889:8888 \
         --detach \
-        ghcr.io/mihaly-farkas/spring-boot-config-server:local \
-        --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
+        ghcr.io/mihaly-farkas/spring-cloud-config-server:local \
+        --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-cloud-config-server-example' \
         --spring.cloud.config.server.git.default-label='main'
      """
-    Then  the "spring-boot-config-server.minimal" container is healthy
+    Then  the "spring-cloud-config-server.minimal" container is healthy

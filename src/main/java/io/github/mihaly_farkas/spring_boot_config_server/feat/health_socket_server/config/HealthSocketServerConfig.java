@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
  * Spring Boot configuration for the Unix domain socket health server.
  *
  * <p>This configuration is conditional on the property {@code
- * spring-boot-config-server.health.socket.enabled} being set to {@code true}. When enabled, it
+ * spring-cloud-config-server.health.socket.enabled} being set to {@code true}. When enabled, it
  * creates a {@link HealthSocketServer} bean that listens on the configured Unix domain socket path
  * for incoming health check connections.
  *
@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ConditionalOnProperty(
-    value = "mihaly-farkas.spring-boot-config-server.health.socket.enabled",
+    value = "mihaly-farkas.spring-cloud-config-server.health.socket.enabled",
     havingValue = "true")
 public class HealthSocketServerConfig {
 
@@ -29,7 +29,7 @@ public class HealthSocketServerConfig {
    * Creates and configures the health socket server bean.
    *
    * <p>The socket server will listen on the Unix domain socket path specified by the property
-   * {@code mihaly-farkas.spring-boot-config-server.health.socket.path} (defaults to {@code
+   * {@code mihaly-farkas.spring-cloud-config-server.health.socket.path} (defaults to {@code
    * health.sock} in the current working directory).
    *
    * @param healthEndpoint the Spring Boot Actuator health endpoint used to obtain health status
@@ -40,7 +40,7 @@ public class HealthSocketServerConfig {
   @Bean
   public HealthSocketServer healthSocketServer(
       HealthEndpoint healthEndpoint,
-      @Value("${mihaly-farkas.spring-boot-config-server.health.socket.path:health.sock}")
+      @Value("${mihaly-farkas.spring-cloud-config-server.health.socket.path:health.sock}")
           String socketPathString) {
     var socketPath = Path.of(socketPathString);
     return HealthSocketServer.builder()

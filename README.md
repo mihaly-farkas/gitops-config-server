@@ -2,10 +2,10 @@
 [![CodeQL](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/dependabot/dependabot-updates)
 
-[![Sonar quality gate status](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-boot-config-server&metric=alert_status&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-boot-config-server)
-[![Sonar coverage](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-boot-config-server&metric=coverage&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-boot-config-server)
-[![Sonar Security Rating](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-boot-config-server&metric=security_rating&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-boot-config-server)
-[![Sonar Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-boot-config-server&metric=sqale_index&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-boot-config-server)
+[![Sonar quality gate status](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=alert_status&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Sonar coverage](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=coverage&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Sonar Security Rating](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=security_rating&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
+[![Sonar Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=mihaly-farkas_spring-cloud-config-server&metric=sqale_index&token=d45a54717c09a5b9b40a9a8d07214aad8d92c9dc)](https://sonarcloud.io/summary/new_code?id=mihaly-farkas_spring-cloud-config-server)
 
 [![Java 25 LTS](https://img.shields.io/badge/java-25%20LTS-blue.svg)](https://www.oracle.com/java/technologies/javase/jdk25-archive-downloads.html)
 [![Maven 3.9.16](https://img.shields.io/badge/maven-3.9.16-blue.svg)](https://maven.apache.org/download.cgi)
@@ -16,7 +16,7 @@
 
 > _"Don't maintain configuration in five different places. Put them in Git."_
 
-# mihaly-farkas/spring-boot-config-server
+# mihaly-farkas/spring-cloud-config-server
 
 Yet another containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/projects/spring-cloud-config) server.
 
@@ -36,14 +36,14 @@ Yet another containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/proj
 
 ## 🚀 Quick Start
 
-1. Run the container with the necessary property. For example, to consume configuration from this project's [example config repo](https://github.com/mihaly-farkas/spring-boot-config-server-example) files, you can run:
+1. Run the container with the necessary property. For example, to consume configuration from this project's [example config repo](https://github.com/mihaly-farkas/spring-cloud-config-server-example) files, you can run:
 
    ```bash
     docker run \
-      --name    spring-boot-config-server \
+      --name    spring-cloud-config-server \
       --publish 8888:8888 \
-      ghcr.io/mihaly-farkas/spring-boot-config-server:unstable \
-      --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
+      ghcr.io/mihaly-farkas/spring-cloud-config-server:unstable \
+      --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-cloud-config-server-example' \
       --encrypt.key='3x4mp13_r3p0_S3cur3_3Nc1pT1on_k3Y' \
       --spring.profiles.active='docker,no_auth'
    ```

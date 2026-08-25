@@ -27,11 +27,11 @@ BeforeAll(async () => {
     );
   }
 
-  stopAndRemoveContainer('spring-boot-config-server.minimal');
-  stopAndRemoveContainer('spring-boot-config-server.encrypt-key');
+  stopAndRemoveContainer('spring-cloud-config-server.minimal');
+  stopAndRemoveContainer('spring-cloud-config-server.encrypt-key');
 });
 
 AfterAll(async () => {
-  stopAndRemoveContainer('spring-boot-config-server.minimal');
-  stopAndRemoveContainer('spring-boot-config-server.encrypt-key');
+  stopAndRemoveContainer('spring-cloud-config-server.minimal');
+  stopAndRemoveContainer('spring-cloud-config-server.encrypt-key');
 });

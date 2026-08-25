@@ -34,7 +34,7 @@ echo "${MESSAGE_COLOR}----------------------------------------------------------
 echo "${MESSAGE_COLOR}Building Docker image...${RESET_COLORS}"
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
 set -x
-docker build --tag ghcr.io/mihaly-farkas/spring-boot-config-server:local . \
+docker build --tag ghcr.io/mihaly-farkas/spring-cloud-config-server:local . \
   --build-arg APP_VERSION="${maven_artifact_version}" \
   --build-arg BUILD_ID="local:$(date +%s)"
 { set +x; } 2>/dev/null

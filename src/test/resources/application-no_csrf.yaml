@@ -1,4 +1,4 @@
 mihaly-farkas:
-  spring-boot-config-server:
+  spring-cloud-config-server:
     security:
       disable-csrf: true

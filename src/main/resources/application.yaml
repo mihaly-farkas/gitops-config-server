@@ -1,6 +1,6 @@
 spring:
   application:
-    name: spring-boot-config-server
+    name: spring-cloud-config-server
   mvc:
     # Enable Problem Details (RFC 9457) support for Spring MVC controllers.
     # This is a standard way to represent errors in HTTP APIs.
@@ -50,7 +50,7 @@ logging:
     root: INFO
 
 mihaly-farkas:
-  spring-boot-config-server:
+  spring-cloud-config-server:
     version: @project.version@
     security:
       disable-csrf: ${SPRING_BOOT_CONFIG_SERVER_SECURITY_DISABLE_CSRF:false}

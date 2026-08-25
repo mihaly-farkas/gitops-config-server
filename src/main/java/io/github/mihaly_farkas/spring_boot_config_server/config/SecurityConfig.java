@@ -33,7 +33,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * <p>All security chains are configured as stateless (no session creation) since this is an
  * API-only application used by other applications, CLIs, scripts, and curl. CSRF protection is
  * enabled by default and can be disabled explicitly via the {@code
- * mihaly-farkas.spring-boot-config-server.security.disable-csrf} property when the deployment
+ * mihaly-farkas.spring-cloud-config-server.security.disable-csrf} property when the deployment
  * environment does not require it.
  *
  * @author Mihály Farkas
@@ -85,7 +85,7 @@ public class SecurityConfig {
   @SuppressWarnings("java:S4502")
   public SecurityFilterChain defaultSecurityFilterChain(
       HttpSecurity http,
-      @Value("${mihaly-farkas.spring-boot-config-server.security.disable-csrf:false}")
+      @Value("${mihaly-farkas.spring-cloud-config-server.security.disable-csrf:false}")
           boolean disableCsrf) {
     log.info(
         "Configuring SecurityFilterChain"
@@ -113,7 +113,7 @@ public class SecurityConfig {
   @SuppressWarnings("java:S4502")
   public SecurityFilterChain disabledSpringBootSecuritySecurityFilterChain(
       HttpSecurity http,
-      @Value("${mihaly-farkas.spring-boot-config-server.security.disable-csrf:false}")
+      @Value("${mihaly-farkas.spring-cloud-config-server.security.disable-csrf:false}")
           boolean disableCsrf) {
     log.info(
         "Configuring SecurityFilterChain"

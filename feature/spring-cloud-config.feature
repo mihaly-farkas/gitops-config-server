@@ -7,27 +7,27 @@ Feature: Spring Cloud Config Server
 
   In the following scenarios, we will demonstrate how to retrieve configuration in different formats (YAML and JSON)
   and how to leverage variable substitution and profile-specific configurations. The configuration is stored in the
-  [mihaly-farkas/spring-boot-config-server-example](https://github.com/mihaly-farkas/spring-boot-config-server-example) public
+  [mihaly-farkas/spring-cloud-config-server-example](https://github.com/mihaly-farkas/spring-cloud-config-server-example) public
   GitHub repository
 
   @since:v0.1.0
   Scenario: Get configuration in YAML format
 
     Given Docker is running on my machine
-    When  if the "spring-boot-config-server.encrypt-key" container is not running, I start a container with:
+    When  if the "spring-cloud-config-server.encrypt-key" container is not running, I start a container with:
       """
       docker run \
-        --name spring-boot-config-server.encrypt-key \
+        --name spring-cloud-config-server.encrypt-key \
         --publish 8890:8888 \
         --detach \
-        ghcr.io/mihaly-farkas/spring-boot-config-server:local \
+        ghcr.io/mihaly-farkas/spring-cloud-config-server:local \
         --spring.profiles.active='docker,no_auth' \
-        --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
+        --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-cloud-config-server-example' \
         --spring.cloud.config.server.git.default-label='main' \
         --encrypt.key='3x4mp13_r3p0_S3cur3_3Nc1pT1on_k3Y' \
-        --mihaly-farkas.spring-boot-config-server.security.disable-csrf='true'
+        --mihaly-farkas.spring-cloud-config-server.security.disable-csrf='true'
      """
-    Then the "spring-boot-config-server.encrypt-key" container is healthy
+    Then the "spring-cloud-config-server.encrypt-key" container is healthy
     When I send a GET request to the "http://localhost:8890/config/v4/spring_boot_config_server-default.yaml" URL
     Then the response status is "200 OK"
     And  the response is a YAML document

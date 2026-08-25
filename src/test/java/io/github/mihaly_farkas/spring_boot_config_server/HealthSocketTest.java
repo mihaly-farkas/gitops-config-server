@@ -47,7 +47,7 @@ class HealthSocketTest {
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
     registry.add(
-        "mihaly-farkas.spring-boot-config-server.health.socket.path", socketPath::toString);
+        "mihaly-farkas.spring-cloud-config-server.health.socket.path", socketPath::toString);
   }
 
   @AfterAll

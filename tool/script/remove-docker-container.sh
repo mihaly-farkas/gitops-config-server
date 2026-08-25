@@ -19,37 +19,37 @@ source .github/workflows/utils/ansi-colors.sh
 
 #######################################################################################################################
 
-# If spring-boot-config-server container is already running, stop it
+# If spring-cloud-config-server container is already running, stop it
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
-echo "${MESSAGE_COLOR}Checking if spring-boot-config-server container is running...${RESET_COLORS}"
+echo "${MESSAGE_COLOR}Checking if spring-cloud-config-server container is running...${RESET_COLORS}"
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
 process_status=$({
   set -x
-  docker ps --filter "name=spring-boot-config-server" --format '{{.Names}}'
+  docker ps --filter "name=spring-cloud-config-server" --format '{{.Names}}'
   { set +x; } 2>/dev/null
 })
-if echo "${process_status}" | grep -q '^spring-boot-config-server$'; then
-  echo "${MESSAGE_COLOR}Stopping existing spring-boot-config-server container...${RESET_COLORS}"
+if echo "${process_status}" | grep -q '^spring-cloud-config-server$'; then
+  echo "${MESSAGE_COLOR}Stopping existing spring-cloud-config-server container...${RESET_COLORS}"
   set -x
-  docker stop spring-boot-config-server
+  docker stop spring-cloud-config-server
   { set +x; } 2>/dev/null
   echo "${OK_COLOR}Done.${RESET_COLORS}"
 else
-  echo "${MESSAGE_COLOR}No running spring-boot-config-server container found.${RESET_COLORS}"
+  echo "${MESSAGE_COLOR}No running spring-cloud-config-server container found.${RESET_COLORS}"
 fi
 
-# If spring-boot-config-server container exists, remove it
+# If spring-cloud-config-server container exists, remove it
 process_status=$({
   set -x
-  docker ps --all --filter "name=spring-boot-config-server" --format '{{.Names}}'
+  docker ps --all --filter "name=spring-cloud-config-server" --format '{{.Names}}'
   { set +x; } 2>/dev/null
 })
-if echo "${process_status}" | grep -q '^spring-boot-config-server$'; then
-  echo "${MESSAGE_COLOR}Removing existing spring-boot-config-server container...${RESET_COLORS}"
+if echo "${process_status}" | grep -q '^spring-cloud-config-server$'; then
+  echo "${MESSAGE_COLOR}Removing existing spring-cloud-config-server container...${RESET_COLORS}"
   set -x
-  docker rm spring-boot-config-server
+  docker rm spring-cloud-config-server
   { set +x; } 2>/dev/null
   echo "${OK_COLOR}Done.${RESET_COLORS}"
 else
-  echo "${MESSAGE_COLOR}No existing spring-boot-config-server container found.${RESET_COLORS}"
+  echo "${MESSAGE_COLOR}No existing spring-cloud-config-server container found.${RESET_COLORS}"
 fi
