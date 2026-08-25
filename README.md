@@ -12,7 +12,7 @@
 [![Spring Boot 4.1.1](https://img.shields.io/badge/spring%20boot-4.1.1-blue.svg)](https://spring.io/projects/spring-boot)
 [![Spring Cloud 2025.1.3](https://img.shields.io/badge/spring%20cloud-2025.1.3-blue.svg)](https://spring.io/projects/spring-cloud)
 [![Dockerfile 1.26](https://img.shields.io/badge/dockerfile-1.26-blue.svg)](https://docs.docker.com/engine/reference/builder/)
-[![dhi.io/eclipse-temurin](https://img.shields.io/badge/dhi.io%2Feclipse--temurin-25.0.4.7--alpine3.24-blue.svg)]([https://opensource.org/licenses/MIT](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images/eclipse-temurin%2Falpine-3.24%2Fjre-25/sha256-bd7ce9b10bc0bb04e7d1f55388d6b8e19e38f3497491425132027f6af85e47b0))
+[![dhi.io/eclipse-temurin](https://img.shields.io/badge/dhi.io%2Feclipse--temurin-25.0.4.7--alpine3.24-blue.svg)](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images/eclipse-temurin%2Falpine-3.24%2Fjre-25/sha256-1ea023a388d182af7407cc53549a4da244617f202486abd6a72adef75d5b1f59)
 
 > _"Don't maintain configuration in five different places. Put them in a Git repo."_
 
