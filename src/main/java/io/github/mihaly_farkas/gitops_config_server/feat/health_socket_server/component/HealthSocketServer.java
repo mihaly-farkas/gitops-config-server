@@ -3,6 +3,8 @@ package io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.c
 import static java.lang.Boolean.TRUE;
 import static java.net.StandardProtocolFamily.UNIX;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.springframework.boot.health.contributor.Status.UP;
 
 import jakarta.annotation.PostConstruct;
@@ -283,8 +285,8 @@ public class HealthSocketServer implements AutoCloseable {
     synchronized (statusMonitor) {
       while (System.nanoTime() < deadlineNanos && this.status() != status) {
         long remainingNanos = deadlineNanos - System.nanoTime();
-        long waitMillis = remainingNanos / 1_000_000;
-        int waitNanos = (int) (remainingNanos % 1_000_000);
+        long waitMillis = NANOSECONDS.toMillis(remainingNanos);
+        int waitNanos = (int) (remainingNanos - MILLISECONDS.toNanos(waitMillis));
 
         statusMonitor.wait(waitMillis, waitNanos);
       }
