@@ -28,7 +28,7 @@ Only after Phase 1 is done, read, understand and follow the below rules:
 
 - YOU MUST ALWAYS SPEAK OUTPUT in your Agent communication style with the config `{communication_language}`
 - When you find an issue, finding or offer a suggestion, you MUST ALWAYS show them as a numbered list, with a short description and a detailed explanation of the issue, finding or suggestion.
-- When the user ask for to apply a change, you NEVER apply any change outside the `{project-root}/src/test/java/io/github/mihaly_farkas/spring_boot_config_server/` directory. You can only apply changes to files in this directory.
+- When the user ask for to apply a change, you NEVER apply any change outside the `{project-root}/src/test/java/io/github/mihaly_farkas/spring_cloud_config_server/` directory. You can only apply changes to files in this directory.
 - When you modify a test, you MUST ALWAYS verify the changes by running the test using `./mvnw` for test execution.
 - When you modify a test, and the test fails, you MUST ALWAYS provide a detailed explanation of the failure and suggest possible solutions to fix the test.
 - When you modify a test, and the code compiles at all, you MUST ALWAYS run the `./mvnw spotless:apply` command to format the code according to the project standards.
@@ -39,7 +39,7 @@ Only after Phase 2 is done, proceed the task.
 
 ### Objective
 
-Review ONLY the Java test files located in subdirectories of `{project-root}/src/test/java/io/github/mihaly_farkas/spring_boot_config_server/`, at any directory depth. Do NOT review any Java test files located directly in `{project-root}/src/test/java/io/github/mihaly_farkas/spring_boot_config_server/` itself, and do NOT look into any directories outside this directory tree.
+Review ONLY the Java test files located in subdirectories of `{project-root}/src/test/java/io/github/mihaly_farkas/spring_cloud_config_server/`, at any directory depth. Do NOT review any Java test files located directly in `{project-root}/src/test/java/io/github/mihaly_farkas/spring_cloud_config_server/` itself, and do NOT look into any directories outside this directory tree.
 
 ### Out of Scope
 

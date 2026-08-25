@@ -1,7 +1,7 @@
 @since:v0.1.0
 Feature: Spring Boot Actuator
 
-  _Spring Boot Config Server_ includes the _Spring Boot Actuator_, which provides production-ready features to help you
+  _Spring Cloud Config Server_ includes the _Spring Boot Actuator_, which provides production-ready features to help you
   monitor and manage your application.
 
   @since:v0.1.0

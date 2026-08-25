@@ -1,7 +1,7 @@
 @since:v0.1.0
 Feature: Spring Cloud Config Server
 
-  _Spring Boot Config Server_ is built on top of _Spring Cloud Config Server_, which provides a centralized configuration
+  _Spring Cloud Config Server_ is built on top of _Spring Cloud Config Server_, which provides a centralized configuration
   management solution for distributed systems. It allows you to manage application configuration across multiple
   environments and services, enabling dynamic updates without requiring application restarts.
 
@@ -28,10 +28,10 @@ Feature: Spring Cloud Config Server
         --mihaly-farkas.spring-cloud-config-server.security.disable-csrf='true'
      """
     Then the "spring-cloud-config-server.encrypt-key" container is healthy
-    When I send a GET request to the "http://localhost:8890/config/v4/spring_boot_config_server-default.yaml" URL
+    When I send a GET request to the "http://localhost:8890/config/v4/spring_cloud_config_server-default.yaml" URL
     Then the response status is "200 OK"
     And  the response is a YAML document
-    And  the "name" field is equal to "Spring Boot Config Server Example"
-    And  the "description" field is equal to "Configuration for Spring Boot Config Server Example"
+    And  the "name" field is equal to "Spring Cloud Config Server Example"
+    And  the "description" field is equal to "Configuration for Spring Cloud Config Server Example"
     And  the "secret" field is equal to "secret value stored in encrypted form"
 

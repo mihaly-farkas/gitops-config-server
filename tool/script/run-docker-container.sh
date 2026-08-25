@@ -31,5 +31,5 @@ docker run \
   --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-cloud-config-server-example' \
   --spring.cloud.config.server.git.default-label='main' \
   --encrypt.key='3x4mp13_r3p0_S3cur3_3Nc1pT1on_k3Y' \
-  --logging.level.io.github.mihaly_farkas.spring_boot_config_server=DEBUG
+  --logging.level.io.github.mihaly_farkas.spring_cloud_config_server=DEBUG
 { set +x; } 2>/dev/null

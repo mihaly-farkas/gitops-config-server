@@ -53,7 +53,7 @@ mihaly-farkas:
   spring-cloud-config-server:
     version: @project.version@
     security:
-      disable-csrf: ${SPRING_BOOT_CONFIG_SERVER_SECURITY_DISABLE_CSRF:false}
+      disable-csrf: ${SPRING_cloud_CONFIG_SERVER_SECURITY_DISABLE_CSRF:false}
     bom:
       spring-security:
         version: @spring-security.version@

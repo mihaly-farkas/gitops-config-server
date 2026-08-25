@@ -12,8 +12,8 @@
   <groupId>io.github.mihaly-farkas</groupId>
   <artifactId>spring-cloud-config-server</artifactId>
   <version>0.1.0-SNAPSHOT</version>
-  <name>Spring Boot Config Server</name>
-  <description>Spring Boot Config Server</description>
+  <name>Spring Cloud Config Server</name>
+  <description>Spring Cloud Config Server</description>
   <properties>
     <!-- ========================================================================================================== -->
     <!-- Fundamental settings -->
