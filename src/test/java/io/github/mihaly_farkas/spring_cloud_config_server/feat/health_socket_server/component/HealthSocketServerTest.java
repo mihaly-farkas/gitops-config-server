@@ -506,6 +506,7 @@ class HealthSocketServerTest {
 
     // ACT
     server.waitUntil(STOPPED);
+    logAppender.flushLogs();
 
     // ASSERT
     assertThat(
