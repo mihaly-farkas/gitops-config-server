@@ -5,11 +5,11 @@ import static ch.qos.logback.classic.Level.ERROR;
 import static ch.qos.logback.classic.Level.INFO;
 import static ch.qos.logback.classic.Level.WARN;
 import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.HealthSocketServerBuilder;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.HealthSocketServerStatus.RUNNING;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.HealthSocketServerStatus.STOPPED;
+import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.HealthSocketServerStatus.STOPPING;
 import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Runtime;
 import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.ServerStatusTimeoutException;
-import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Status.RUNNING;
-import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Status.STOPPED;
-import static io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.Status.STOPPING;
 import static io.github.mihaly_farkas.gitops_config_server.lib.test_tool.MockitoHelper.assertVerify;
 import static io.github.mihaly_farkas.gitops_config_server.lib.test_tool.TestLogAppenderMatcher.logEntry;
 import static io.github.mihaly_farkas.gitops_config_server.lib.test_tool.TestLogAppenderMatcher.logged;
@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.boot.health.contributor.Status.UP;
 
+import io.github.mihaly_farkas.gitops_config_server.feat.health_socket_server.component.HealthSocketServer.WorkerProcess;
 import io.github.mihaly_farkas.gitops_config_server.lib.test_tool.TestLogAppender;
 import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
@@ -108,7 +110,7 @@ class HealthSocketServerTest {
     }
 
     // ASSERT
-    assertThat("The server is stopped", server.status(), is(STOPPED));
+    assertThat("The server is stopped", server.getStatus(), is(STOPPED));
   }
 
   @DisplayName("HealthSocketServer responses via socket based on Actuator Health Endpoint status")
@@ -150,7 +152,7 @@ class HealthSocketServerTest {
     var server = server();
     var logAppender = attachLogAppenderTo(server);
     server.start().waitUntil(RUNNING);
-    var workerThreadName = server.workerThreadName().orElseThrow();
+    var workerThreadName = server.getWorkerThreadName().orElseThrow();
 
     // ACT
     server.start();
@@ -205,7 +207,7 @@ class HealthSocketServerTest {
     // ASSERT
     assertThat(
         "The server thread is the one which created by the faster starter",
-        server.workerThreadName(),
+        server.getWorkerThreadName(),
         is(workerThreadSetByOtherNameOptional));
     assertVerify(
         "The server thread that was created by the slower starter is never started",
@@ -231,7 +233,7 @@ class HealthSocketServerTest {
     server.start().waitUntil(RUNNING);
 
     // ACT
-    var threadName = server.workerThreadName();
+    var threadName = server.getWorkerThreadName();
 
     // ASSERT
     assertThat(
@@ -250,7 +252,7 @@ class HealthSocketServerTest {
     var server = server();
 
     // ACT
-    var threadName = server.workerThreadName();
+    var threadName = server.getWorkerThreadName();
 
     // ASSERT
     assertThat("The server thread name is empty", threadName, is(Optional.empty()));
@@ -268,35 +270,10 @@ class HealthSocketServerTest {
     server.start().waitUntil(RUNNING).close();
 
     // ACT
-    var threadName = server.workerThreadName();
+    var threadName = server.getWorkerThreadName();
 
     // ASSERT
     assertThat("The server thread name is empty", threadName, is(Optional.empty()));
-  }
-
-  @DisplayName(
-      "HealthSocketServer.status() returns STOPPING" + " when the server thread is interrupted")
-  @Test
-  void statusWhenWorkerThreadIsInterrupted() {
-    // ARRANGE
-    var workerThread = mock(Thread.class);
-    var workerThreadReference = mockWorkerThreadReference();
-    var server =
-        new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
-
-    when(workerThread.isAlive()).thenReturn(false);
-    when(workerThread.isInterrupted()).thenReturn(true);
-    when(workerThreadReference.get()).thenReturn(workerThread);
-
-    // ACT
-    var status = server.status(); // Get the status of the server
-
-    // ASSERT
-    assertThat(status, is(STOPPING));
-
-    // CLEANUP
-    server.close();
   }
 
   @DisplayName(
@@ -315,7 +292,7 @@ class HealthSocketServerTest {
     when(workerThreadReference.get()).thenReturn(workerThread);
 
     // ACT
-    var status = server.status(); // Get the status of the server
+    var status = server.getStatus(); // Get the status of the server
 
     // ASSERT
     assertThat(status, is(STOPPING));
@@ -349,59 +326,102 @@ class HealthSocketServerTest {
   }
 
   @DisplayName(
-      "HealthSocketServer.close() interrupts the server thread"
+      "HealthSocketServer.close() interrupts the worker thread"
           + " and waits for it to terminate gracefully")
   @Test
-  @SneakyThrows
   void close() {
     // ARRANGE
     var workerThread = mock(Thread.class);
     var workerThreadReference = mockWorkerThreadReference();
+    var workerThreadFactory = mock(ThreadFactory.class);
+    var runtime = mockRuntime();
     var server =
-        new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
+        new HealthSocketServer(socketPath(), mockHealthEndpoint(), runtime, workerThreadReference);
 
-    when(workerThread.isAlive()).thenReturn(true, false);
-    when(workerThreadReference.get()).thenReturn(workerThread);
-    when(workerThreadReference.compareAndSet(workerThread, null)).thenReturn(true);
+    when(workerThreadReference.get()).thenReturn(null, workerThread);
+    when(runtime.workerThreadFactory()).thenReturn(workerThreadFactory);
+    when(workerThreadFactory.newThread(any(WorkerProcess.class))).thenReturn(workerThread);
+    when(workerThreadReference.compareAndSet(null, workerThread)).thenReturn(true);
+    doAnswer(
+            _ -> {
+              server.socketReady.set(true);
+              return null;
+            })
+        .when(workerThread)
+        .start();
+    when(workerThread.isAlive()).thenReturn(true);
+    when(workerThread.isInterrupted()).thenReturn(true);
+
+    server.start().close();
 
     // ACT
-    server.close(); // Stop the server
+    var status = server.getStatus();
 
     // ASSERT
-    verify(workerThread, times(1)).interrupt();
-    verify(workerThread, times(1)).join(any(Duration.class));
-    verify(workerThreadReference, times(1)).compareAndSet(workerThread, null);
+    assertThat("The server status in STOPPING", status, is(STOPPING));
+    assertVerify(
+        "The worker thread is interrupted", () -> verify(workerThread, times(1)).interrupt());
+    assertVerify(
+        "The worker thread is joined with a timeout",
+        () -> verify(workerThread, times(1)).join(any(Duration.class)));
+    assertVerify(
+        "The worker thread reference is not cleared (the worker thread should do that)",
+        () -> verify(workerThreadReference, times(0)).compareAndSet(workerThread, null));
   }
 
   @DisplayName(
-      "HealthSocketServer.close() keeps the server in STOPPING"
-          + " until the worker thread actually terminates")
+      "HealthSocketServer.close() interrupts the worker thread"
+          + " and removes the reference"
+          + " when the thread does not terminate gracefully within the timeout")
   @Test
   @SneakyThrows
-  void closeKeepsStoppingStatusWhileWorkerThreadIsStillRunning() {
+  void closeWhenWorkerThreadDoesNotTerminateGracefully() {
     // ARRANGE
     var workerThread = mock(Thread.class);
     var workerThreadReference = mockWorkerThreadReference();
+    var workerThreadFactory = mock(ThreadFactory.class);
+    var runtime = mockRuntime();
     var server =
-        new HealthSocketServer(
-            socketPath(), mockHealthEndpoint(), mockRuntime(), workerThreadReference);
+        new HealthSocketServer(socketPath(), mockHealthEndpoint(), runtime, workerThreadReference);
+    var logAppender = attachLogAppenderTo(server);
 
-    when(workerThread.isAlive()).thenReturn(true, true, true);
-    when(workerThread.isInterrupted()).thenReturn(true);
-    when(workerThreadReference.get()).thenReturn(workerThread);
+    when(workerThreadReference.get()).thenReturn(null, workerThread, null);
+    when(runtime.workerThreadFactory()).thenReturn(workerThreadFactory);
+    when(workerThreadFactory.newThread(any(WorkerProcess.class))).thenReturn(workerThread);
+    when(workerThreadReference.compareAndSet(null, workerThread)).thenReturn(true);
+    doAnswer(
+            _ -> {
+              server.socketReady.set(true);
+              return null;
+            })
+        .when(workerThread)
+        .start();
+    when(workerThread.isAlive()).thenReturn(true);
+    when(workerThread.join(any(Duration.class)))
+        .thenThrow(new InterruptedException("Simulated join timeout"));
+
+    server.start().close();
 
     // ACT
-    server.close();
+    var status = server.getStatus();
 
     // ASSERT
-    assertThat(
-        "The server stays in STOPPING while the worker thread is still running",
-        server.status(),
-        is(STOPPING));
+    assertThat("The server status in STOPPED", status, is(STOPPED));
     assertVerify(
-        "The worker thread reference is kept until the thread actually terminates",
-        () -> verify(workerThreadReference, times(0)).compareAndSet(workerThread, null));
+        "The worker thread is interrupted"
+            + " and then interrupted again when the exception is caught",
+        () -> verify(workerThread, times(2)).interrupt());
+    assertVerify(
+        "The worker thread is joined with a timeout",
+        () -> verify(workerThread, times(1)).join(any(Duration.class)));
+    assertVerify(
+        "The worker thread reference is cleared (force removed by the server)",
+        () -> verify(workerThreadReference, times(1)).compareAndSet(workerThread, null));
+
+    assertThat("Logged messages are:", logAppender, logged(WARN, "Exception occurred"));
+
+    // CLEANUP
+    logAppender.detach();
   }
 
   @DisplayName(
@@ -493,7 +513,7 @@ class HealthSocketServerTest {
         loggedInOrder(
             logEntry(ERROR, "Exception occurred"),
             logEntry(DEBUG, "Interrupted"),
-            logEntry(DEBUG, "Socket file does not exist: " + server.socketPath()),
+            logEntry(DEBUG, "Socket file does not exist: " + server.getSocketPath()),
             logEntry(INFO, "Stopped")));
 
     // CLEANUP
@@ -513,7 +533,7 @@ class HealthSocketServerTest {
     server.start().waitUntil(RUNNING);
 
     // ACT
-    range(0, 7).forEach(_ -> readFrom(server.socketPath(), Duration.ofNanos(1)));
+    range(0, 7).forEach(_ -> readFrom(server.getSocketPath(), Duration.ofNanos(1)));
     logAppender.flushLogs();
 
     // ASSERT

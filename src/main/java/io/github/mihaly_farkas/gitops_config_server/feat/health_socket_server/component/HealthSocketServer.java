@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 
@@ -56,13 +57,7 @@ public class HealthSocketServer implements AutoCloseable {
    */
   public static final String DEFAULT_THREAD_NAME = "health-socket-server";
 
-  /** Log message for exceptions. */
-  private static final String LOG_MESSAGE_EXCEPTION_OCCURRED = "Exception occurred";
-
-  /** Default timeout used by {@link #close()}. */
-  private static final Duration DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT = Duration.ofMillis(3000);
-
-  /** Default timeout used by {@link #waitUntil(Status)}. */
+  /** Default timeout used by {@link #waitUntil(HealthSocketServerStatus)}. */
   private static final Duration DEFAULT_WAIT_UNTIL_TIMEOUT = Duration.ofMillis(5000);
 
   /**
@@ -74,8 +69,14 @@ public class HealthSocketServer implements AutoCloseable {
    */
   private static final int FAILED_WRITE_COUNT_THRESHOLD = 5;
 
-  /** Filesystem path of the Unix domain socket. */
-  @NotNull private final Path socketPath;
+  /** Log message for exceptions. */
+  private static final String LOG_MESSAGE_EXCEPTION_OCCURRED = "Exception occurred";
+
+  /** Default timeout used by {@link #close()}. */
+  private static final Duration SERVER_THREAD_SHUTDOWN_TIMEOUT = Duration.ofMillis(3000);
+
+  /** Tracks whether the Unix domain socket is currently bound and accepting connections. */
+  @NotNull final AtomicBoolean socketReady = new AtomicBoolean(false);
 
   /** Actuator endpoint used to obtain the current application health status. */
   @NotNull private final HealthEndpoint healthEndpoint;
@@ -87,18 +88,22 @@ public class HealthSocketServer implements AutoCloseable {
   @NotNull private final Runtime runtime;
 
   /**
+   * Filesystem path of the Unix domain socket. -- GETTER -- Returns the filesystem path of the Unix
+   * socket.
+   */
+  @Getter @NotNull private final Path socketPath;
+
+  /**
+   * Monitor object used by {@link #waitUntil(HealthSocketServerStatus, Duration)} for status-change
+   * notifications.
+   */
+  @NotNull private final Object statusMonitor = new Object();
+
+  /**
    * Reference to the thread running the health socket server, allowing for controlled shutdown and
    * resource cleanup.
    */
   @NotNull private final AtomicReference<Thread> workerThreadReference;
-
-  /**
-   * Monitor object used by {@link #waitUntil(Status, Duration)} for status-change notifications.
-   */
-  @NotNull private final Object statusMonitor = new Object();
-
-  /** Tracks whether the Unix domain socket is currently bound and accepting connections. */
-  @NotNull private final AtomicBoolean socketReady = new AtomicBoolean(false);
 
   /**
    * Constructs a new HealthSocketServer with the specified health endpoint and socket path.
@@ -178,6 +183,37 @@ public class HealthSocketServer implements AutoCloseable {
   }
 
   /**
+   * Returns the current status.
+   *
+   * @return the current status
+   */
+  public HealthSocketServerStatus getStatus() {
+    var workerThread = workerThreadReference.get();
+    if (workerThread == null) {
+      return HealthSocketServerStatus.STOPPED;
+    } else if (workerThread.isAlive() && !workerThread.isInterrupted()) {
+      if (socketReady.get()) {
+        return HealthSocketServerStatus.RUNNING;
+      } else {
+        return HealthSocketServerStatus.STARTING;
+      }
+    } else {
+      return HealthSocketServerStatus.STOPPING;
+    }
+  }
+
+  /**
+   * Returns the name of the worker thread, if running.
+   *
+   * @return an {@link Optional} containing the thread name if the worker thread is running,
+   *     otherwise empty
+   */
+  public Optional<String> getWorkerThreadName() {
+    var thread = workerThreadReference.get();
+    return isNull(thread) ? Optional.empty() : Optional.of(thread.getName());
+  }
+
+  /**
    * Waits for the server to reach the specified status using a default timeout.
    *
    * <p>This method blocks the caller until the server reaches the expected status or the default
@@ -187,7 +223,7 @@ public class HealthSocketServer implements AutoCloseable {
    * @return this instance for method chaining
    * @throws ServerStatusTimeoutException if the target status is not reached within the timeout
    */
-  public HealthSocketServer waitUntil(Status status) throws InterruptedException {
+  public HealthSocketServer waitUntil(HealthSocketServerStatus status) throws InterruptedException {
     return waitUntil(status, DEFAULT_WAIT_UNTIL_TIMEOUT);
   }
 
@@ -203,12 +239,12 @@ public class HealthSocketServer implements AutoCloseable {
    * @throws ServerStatusTimeoutException if the expected status is not reached within the specified
    *     timeout
    */
-  public HealthSocketServer waitUntil(Status expectedStatus, Duration timeout)
+  public HealthSocketServer waitUntil(HealthSocketServerStatus expectedStatus, Duration timeout)
       throws InterruptedException {
     long deadlineNanos = System.nanoTime() + timeout.toNanos();
 
     synchronized (statusMonitor) {
-      while (this.status() != expectedStatus) {
+      while (this.getStatus() != expectedStatus) {
         long remainingNanos = deadlineNanos - System.nanoTime();
         if (remainingNanos <= 0) {
           break;
@@ -219,51 +255,11 @@ public class HealthSocketServer implements AutoCloseable {
       }
     }
 
-    if (this.status() != expectedStatus) {
-      throw new ServerStatusTimeoutException(expectedStatus, timeout, this.status());
+    if (this.getStatus() != expectedStatus) {
+      throw new ServerStatusTimeoutException(expectedStatus, timeout, this.getStatus());
     }
 
     return this;
-  }
-
-  /**
-   * Returns the filesystem path of the Unix socket.
-   *
-   * @return the socket path
-   */
-  public Path socketPath() {
-    return socketPath;
-  }
-
-  /**
-   * Returns the current status.
-   *
-   * @return the current status
-   */
-  public Status status() {
-    var workerThread = workerThreadReference.get();
-    if (workerThread == null) {
-      return Status.STOPPED;
-    } else if (workerThread.isAlive() && !workerThread.isInterrupted()) {
-      if (socketReady.get()) {
-        return Status.RUNNING;
-      } else {
-        return Status.STARTING;
-      }
-    } else {
-      return Status.STOPPING;
-    }
-  }
-
-  /**
-   * Returns the name of the worker thread, if running.
-   *
-   * @return an {@link Optional} containing the thread name if the worker thread is running,
-   *     otherwise empty
-   */
-  public Optional<String> workerThreadName() {
-    var thread = workerThreadReference.get();
-    return isNull(thread) ? Optional.empty() : Optional.of(thread.getName());
   }
 
   /** Stops the worker thread. */
@@ -271,26 +267,23 @@ public class HealthSocketServer implements AutoCloseable {
   public void close() {
     var workerThread = workerThreadReference.get();
     if (workerThread != null) {
+      // Interrupt the worker thread to signal it to stop
+      workerThread.interrupt();
       signalStatusChange();
+
+      // If the worker thread is still alive, wait for it to terminate within the specified timeout
       if (workerThread.isAlive()) {
-        workerThread.interrupt();
-        signalStatusChange();
         try {
-          workerThread.join(DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT);
-          if (workerThread.isAlive()) {
-            log.warn(
-                "Worker thread failed to terminate within {} milliseconds",
-                DEFAULT_SERVER_THREAD_SHUTDOWN_TIMEOUT.toMillis());
-          } else {
-            workerThreadReference.compareAndSet(workerThread, null);
-          }
+          workerThread.join(SERVER_THREAD_SHUTDOWN_TIMEOUT);
         } catch (InterruptedException e) {
+          log.warn(LOG_MESSAGE_EXCEPTION_OCCURRED, e);
           workerThread.interrupt();
-          log.debug(LOG_MESSAGE_EXCEPTION_OCCURRED, e);
+          socketReady.set(false);
+          workerThreadReference.compareAndSet(workerThread, null);
+          signalStatusChange();
         }
       } else {
         log.debug("Worker thread is already terminated: {}", workerThread.getName());
-        workerThreadReference.compareAndSet(workerThread, null);
       }
     }
   }
@@ -344,7 +337,7 @@ public class HealthSocketServer implements AutoCloseable {
   }
 
   /** Represents the lifecycle state of the health socket server. */
-  public enum Status {
+  public enum HealthSocketServerStatus {
 
     /** The health socket server has been stopped and is not running. */
     STOPPED,
@@ -439,9 +432,9 @@ public class HealthSocketServer implements AutoCloseable {
      * @param currentStatus the status of the server when the timeout occurred
      */
     public ServerStatusTimeoutException(
-        HealthSocketServer.Status expectedStatus,
+        HealthSocketServerStatus expectedStatus,
         Duration timeout,
-        HealthSocketServer.Status currentStatus) {
+        HealthSocketServerStatus currentStatus) {
       super(
           "Did not reach status "
               + expectedStatus
