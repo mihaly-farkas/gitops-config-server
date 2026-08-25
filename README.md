@@ -20,12 +20,6 @@
 
 A containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/projects/spring-cloud-config) server.
 
-## ⚠️ Disclaimer & Liability
-
-This is a hobby project. I make no guarantee that it is production-ready. The project may contain experimental or incomplete features.
-
-Use it at your own risk, and carefully review and adapt the configuration before using it in your own environment.
-
 ## 🚀 Quick Start
 
 1. Run the container with the necessary property. For example, to consume configuration from this project's [example config repo](https://github.com/mihaly-farkas/spring-boot-config-server-example) files, you can run:
@@ -57,6 +51,12 @@ Use it at your own risk, and carefully review and adapt the configuration before
   - **Health and Monitoring:** Provides Spring Boot Actuator endpoints.
 
   - **OpenAPI Documentation:** Provides API documentation for the exposed configuration and management endpoints.
+
+## ⚠️ Disclaimer & Liability
+
+This is a hobby project. I make no guarantee that it is production-ready. The project may contain experimental or incomplete features.
+
+Use it at your own risk, and carefully review and adapt the configuration before using it in your own environment.
 
 ## ⚖️ License
 
