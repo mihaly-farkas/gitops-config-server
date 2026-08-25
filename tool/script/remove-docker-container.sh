@@ -19,37 +19,37 @@ source .github/workflows/utils/ansi-colors.sh
 
 #######################################################################################################################
 
-# If gitops-config-server container is already running, stop it
+# If spring-boot-config-server container is already running, stop it
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
-echo "${MESSAGE_COLOR}Checking if gitops-config-server container is running...${RESET_COLORS}"
+echo "${MESSAGE_COLOR}Checking if spring-boot-config-server container is running...${RESET_COLORS}"
 echo "${MESSAGE_COLOR}---------------------------------------------------------------------------------${RESET_COLORS}"
 process_status=$({
   set -x
-  docker ps --filter "name=gitops-config-server" --format '{{.Names}}'
+  docker ps --filter "name=spring-boot-config-server" --format '{{.Names}}'
   { set +x; } 2>/dev/null
 })
-if echo "${process_status}" | grep -q '^gitops-config-server$'; then
-  echo "${MESSAGE_COLOR}Stopping existing gitops-config-server container...${RESET_COLORS}"
+if echo "${process_status}" | grep -q '^spring-boot-config-server$'; then
+  echo "${MESSAGE_COLOR}Stopping existing spring-boot-config-server container...${RESET_COLORS}"
   set -x
-  docker stop gitops-config-server
+  docker stop spring-boot-config-server
   { set +x; } 2>/dev/null
   echo "${OK_COLOR}Done.${RESET_COLORS}"
 else
-  echo "${MESSAGE_COLOR}No running gitops-config-server container found.${RESET_COLORS}"
+  echo "${MESSAGE_COLOR}No running spring-boot-config-server container found.${RESET_COLORS}"
 fi
 
-# If gitops-config-server container exists, remove it
+# If spring-boot-config-server container exists, remove it
 process_status=$({
   set -x
-  docker ps --all --filter "name=gitops-config-server" --format '{{.Names}}'
+  docker ps --all --filter "name=spring-boot-config-server" --format '{{.Names}}'
   { set +x; } 2>/dev/null
 })
-if echo "${process_status}" | grep -q '^gitops-config-server$'; then
-  echo "${MESSAGE_COLOR}Removing existing gitops-config-server container...${RESET_COLORS}"
+if echo "${process_status}" | grep -q '^spring-boot-config-server$'; then
+  echo "${MESSAGE_COLOR}Removing existing spring-boot-config-server container...${RESET_COLORS}"
   set -x
-  docker rm gitops-config-server
+  docker rm spring-boot-config-server
   { set +x; } 2>/dev/null
   echo "${OK_COLOR}Done.${RESET_COLORS}"
 else
-  echo "${MESSAGE_COLOR}No existing gitops-config-server container found.${RESET_COLORS}"
+  echo "${MESSAGE_COLOR}No existing spring-boot-config-server container found.${RESET_COLORS}"
 fi

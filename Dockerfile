@@ -25,13 +25,13 @@ USER nonroot
 WORKDIR /app
 
 COPY --from=healthcheck-builder /builder/healthcheck /app/healthcheck
-COPY target/gitops-config-server-${APP_VERSION}.jar ./gitops-config-server.jar
+COPY target/spring-boot-config-server-${APP_VERSION}.jar ./spring-boot-config-server.jar
 
 ENTRYPOINT ["java", \
-  "-jar", "/app/gitops-config-server.jar", \
+  "-jar", "/app/spring-boot-config-server.jar", \
   "--spring.profiles.active=docker", \
-  "--gitops-config-server.health.socket.enabled=true", \
-  "--gitops-config-server.health.socket.path=/tmp/health.sock" \
+  "--mihaly-farkas.spring-boot-config-server.health.socket.enabled=true", \
+  "--mihaly-farkas.spring-boot-config-server.health.socket.path=/tmp/health.sock" \
 ]
 
 EXPOSE ${SERVER_PORT}

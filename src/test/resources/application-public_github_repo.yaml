@@ -3,5 +3,5 @@ spring:
     config:
       server:
         git:
-          uri: https://github.com/mihaly-farkas/gitops-config-server-example
+          uri: https://github.com/mihaly-farkas/spring-boot-config-server-example
           default-label: main

@@ -29,7 +29,7 @@ if [[ "${BUILD_ARTIFACT}" == "true" ]]; then
     echo "|--------------------|----------------------------------------------------------------------------------------------------------------------------|"
     echo "| \`spotless:check\` | Checks that the source code is properly formatted using [google-java-format](https://github.com/google/google-java-format) |"
     echo "| \`verify\`         | Runs unit tests and integration tests                                                                                      |"
-    echo "| \`sonar:sonar\`    | Runs [SonarQube](https://sonarcloud.io/summary/overall?id=mihaly-farkas_gitops-config-server&branch=main) analysis         |"
+    echo "| \`sonar:sonar\`    | Runs [SonarQube](https://sonarcloud.io/summary/overall?id=mihaly-farkas_spring-boot-config-server&branch=main) analysis         |"
   } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
 else

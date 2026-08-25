@@ -1,3 +1,4 @@
-gitops-config-server:
-  security:
-    disable-csrf: true
+mihaly-farkas:
+  spring-boot-config-server:
+    security:
+      disable-csrf: true

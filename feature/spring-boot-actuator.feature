@@ -1,7 +1,7 @@
 @since:v0.1.0
 Feature: Spring Boot Actuator
 
-  _GitOps Config Server_ includes the _Spring Boot Actuator_, which provides production-ready features to help you
+  _Spring Boot Config Server_ includes the _Spring Boot Actuator_, which provides production-ready features to help you
   monitor and manage your application.
 
   @since:v0.1.0
@@ -15,17 +15,17 @@ Feature: Spring Boot Actuator
   while exposing only minimal, non-sensitive system status data.
 
     Given Docker is running on my machine
-    When  if the "gitops-config-server.minimal" container is not running, I start a container with:
+    When  if the "spring-boot-config-server.minimal" container is not running, I start a container with:
       """
       docker run \
-        --name gitops-config-server.minimal \
+        --name spring-boot-config-server.minimal \
         --publish 8889:8888 \
         --detach \
-        ghcr.io/mihaly-farkas/gitops-config-server:local \
-        --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/gitops-config-server-example' \
+        ghcr.io/mihaly-farkas/spring-boot-config-server:local \
+        --spring.cloud.config.server.git.uri='https://github.com/mihaly-farkas/spring-boot-config-server-example' \
         --spring.cloud.config.server.git.default-label='main'
      """
-    Then  the "gitops-config-server.minimal" container is healthy
+    Then  the "spring-boot-config-server.minimal" container is healthy
     When I send a GET request to the "http://localhost:8889/actuator/health" URL
     Then the response status is "200 OK"
     And  the response is a JSON object

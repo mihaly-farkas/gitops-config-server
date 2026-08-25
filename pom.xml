@@ -10,10 +10,10 @@
     <relativePath/>
   </parent>
   <groupId>io.github.mihaly-farkas</groupId>
-  <artifactId>gitops-config-server</artifactId>
+  <artifactId>spring-boot-config-server</artifactId>
   <version>0.1.0-SNAPSHOT</version>
-  <name>GitOps Config Server</name>
-  <description>GitOps Config Server built for GitOps</description>
+  <name>Spring Boot Config Server</name>
+  <description>Spring Boot Config Server</description>
   <properties>
     <!-- ========================================================================================================== -->
     <!-- Fundamental settings -->
@@ -438,8 +438,8 @@
 
           https://security.snyk.io/package/maven/ch.qos.logback%3Alogback-core
 
-          [INFO] === dependency:3.10.0:tree (default-cli) @ gitops-config-server ===
-          [INFO] io.github.mihaly-farkas:gitops-config-server:jar:0.1.0-SNAPSHOT
+          [INFO] === dependency:3.10.0:tree (default-cli) @ spring-boot-config-server ===
+          [INFO] io.github.mihaly-farkas:spring-boot-config-server:jar:0.1.0-SNAPSHOT
           [INFO] \- org.springframework.boot:spring-boot-starter-webmvc:jar:4.1.0:compile
           [INFO]    \- org.springframework.boot:spring-boot-starter:jar:4.1.0:compile
           [INFO]       \- org.springframework.boot:spring-boot-starter-logging:jar:4.1.0:compile
@@ -456,8 +456,8 @@
 
          https://security.snyk.io/package/maven/org.apache.logging.log4j%3Alog4j-api
 
-         [INFO] === dependency:3.10.0:tree (default-cli) @ gitops-config-server ===
-         [INFO] io.github.mihaly-farkas:gitops-config-server:jar:0.1.0-SNAPSHOT
+         [INFO] === dependency:3.10.0:tree (default-cli) @ spring-boot-config-server ===
+         [INFO] io.github.mihaly-farkas:spring-boot-config-server:jar:0.1.0-SNAPSHOT
          [INFO] \- org.springframework.boot:spring-boot-starter-webmvc:jar:4.1.0:compile
          [INFO]    \- org.springframework.boot:spring-boot-starter:jar:4.1.0:compile
          [INFO]       \- org.springframework.boot:spring-boot-starter-logging:jar:4.1.0:compile
@@ -477,8 +477,8 @@
 
           https://security.snyk.io/package/maven/org.apache.tomcat.embed%3Atomcat-embed-core
 
-          [INFO] === dependency:3.10.0:tree (default-cli) @ gitops-config-server ===
-          [INFO] io.github.mihaly-farkas:gitops-config-server:jar:0.1.0-SNAPSHOT
+          [INFO] === dependency:3.10.0:tree (default-cli) @ spring-boot-config-server ===
+          [INFO] io.github.mihaly-farkas:spring-boot-config-server:jar:0.1.0-SNAPSHOT
           [INFO] \- org.springframework.boot:spring-boot-starter-webmvc:jar:4.1.0:compile
           [INFO]    \- org.springframework.boot:spring-boot-starter-tomcat:jar:4.1.0:compile
           [INFO]       \- org.springframework.boot:spring-boot-starter-tomcat-runtime:jar:4.1.0:compile
@@ -494,8 +494,8 @@
 
           https://security.snyk.io/package/maven/tools.jackson.core%3Ajackson-databind
 
-          [INFO] === dependency:3.10.0:tree (default-cli) @ gitops-config-server ===
-          [INFO] io.github.mihaly-farkas:gitops-config-server:jar:0.1.0-SNAPSHOT
+          [INFO] === dependency:3.10.0:tree (default-cli) @ spring-boot-config-server ===
+          [INFO] io.github.mihaly-farkas:spring-boot-config-server:jar:0.1.0-SNAPSHOT
           [INFO] \- org.springframework.cloud:spring-cloud-config-server:jar:5.0.4:compile
           [INFO]    \- org.springframework.cloud:spring-cloud-config-client:jar:5.0.4:compile
           [INFO]       \- tools.jackson.core:jackson-databind:jar:3.1.4:compile
@@ -511,8 +511,8 @@
 
           https://security.snyk.io/package/maven/com.fasterxml.jackson.core%3Ajackson-databind
 
-          [INFO] === dependency:3.10.0:tree (default-cli) @ gitops-config-server ===
-          [INFO] io.github.mihaly-farkas:gitops-config-server:jar:0.1.0-SNAPSHOT
+          [INFO] === dependency:3.10.0:tree (default-cli) @ spring-boot-config-server ===
+          [INFO] io.github.mihaly-farkas:spring-boot-config-server:jar:0.1.0-SNAPSHOT
           [INFO] \- org.springdoc:springdoc-openapi-starter-webmvc-ui:jar:3.1.0:compile
           [INFO]    \- org.springdoc:springdoc-openapi-starter-webmvc-api:jar:3.1.0:compile
           [INFO]       \- org.springdoc:springdoc-openapi-starter-common:jar:3.1.0:compile

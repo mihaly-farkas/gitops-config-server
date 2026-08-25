@@ -1,0 +1,23 @@
+{
+  "properties": [
+    {
+      "name": "mihaly-farkas.spring-boot-config-server.version",
+      "type": "java.lang.String",
+      "description": "Version of mihaly-farkas/spring-boot-config-server."
+    },
+    {
+      "name": "mihaly-farkas.spring-boot-config-server.bom.spring-security.version",
+      "type": "java.lang.String",
+      "description": "Version of Spring Security."
+    },
+    {
+      "name": "mihaly-farkas.spring-boot-config-server.bom.spring-cloud.version",
+      "type": "java.lang.String",
+      "description": "Version of Spring Cloud."
+    },
+    {
+      "name": "mihaly-farkas.spring-boot-config-server.bom.tomcat.version",
+      "type": "java.lang.String",
+      "description": "Version of Tomcat HTTP server."
+    }
+  ] }

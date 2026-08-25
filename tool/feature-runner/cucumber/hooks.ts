@@ -27,11 +27,11 @@ BeforeAll(async () => {
     );
   }
 
-  stopAndRemoveContainer('gitops-config-server.minimal');
-  stopAndRemoveContainer('gitops-config-server.encrypt-key');
+  stopAndRemoveContainer('spring-boot-config-server.minimal');
+  stopAndRemoveContainer('spring-boot-config-server.encrypt-key');
 });
 
 AfterAll(async () => {
-  stopAndRemoveContainer('gitops-config-server.minimal');
-  stopAndRemoveContainer('gitops-config-server.encrypt-key');
+  stopAndRemoveContainer('spring-boot-config-server.minimal');
+  stopAndRemoveContainer('spring-boot-config-server.encrypt-key');
 });

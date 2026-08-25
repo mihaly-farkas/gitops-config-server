@@ -1,6 +1,6 @@
 spring:
   application:
-    name: gitops-config-server
+    name: spring-boot-config-server
   mvc:
     # Enable Problem Details (RFC 9457) support for Spring MVC controllers.
     # This is a standard way to represent errors in HTTP APIs.
@@ -49,14 +49,15 @@ logging:
   level:
     root: INFO
 
-gitops-config-server:
-  version: @project.version@
-  security:
-    disable-csrf: ${GITOPS_CONFIG_SERVER_SECURITY_DISABLE_CSRF:false}
-  bom:
-    spring-security:
-      version: @spring-security.version@
-    spring-cloud:
-      version: @spring-cloud.version@
-    tomcat:
-      version: @tomcat.version@
+mihaly-farkas:
+  spring-boot-config-server:
+    version: @project.version@
+    security:
+      disable-csrf: ${SPRING_BOOT_CONFIG_SERVER_SECURITY_DISABLE_CSRF:false}
+    bom:
+      spring-security:
+        version: @spring-security.version@
+      spring-cloud:
+        version: @spring-cloud.version@
+      tomcat:
+        version: @tomcat.version@
