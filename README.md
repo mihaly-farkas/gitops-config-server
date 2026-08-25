@@ -16,7 +16,7 @@
 
 > _"Don't maintain configuration in five different places. Put them in a Git repo."_
 
-# mihaly-farkas/spring-cloud-config-server
+# spring-cloud-config-server
 
 Yet another containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/projects/spring-cloud-config) server.
 
