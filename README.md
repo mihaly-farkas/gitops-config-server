@@ -14,7 +14,7 @@
 [![Dockerfile 1.26](https://img.shields.io/badge/dockerfile-1.26-blue.svg)](https://docs.docker.com/engine/reference/builder/)
 [![dhi.io/eclipse-temurin](https://img.shields.io/badge/dhi.io%2Feclipse--temurin-25.0.4.7--alpine3.24-blue.svg)]([https://opensource.org/licenses/MIT](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images/eclipse-temurin%2Falpine-3.24%2Fjre-25/sha256-bd7ce9b10bc0bb04e7d1f55388d6b8e19e38f3497491425132027f6af85e47b0))
 
-> _"Don't maintain configuration in five different places. Put them in Git."_
+> _"Don't maintain configuration in five different places. Put them in a Git repo."_
 
 # mihaly-farkas/spring-cloud-config-server
 
