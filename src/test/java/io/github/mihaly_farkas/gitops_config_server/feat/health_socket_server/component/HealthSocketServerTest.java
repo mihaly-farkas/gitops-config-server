@@ -127,6 +127,7 @@ class HealthSocketServerTest {
 
     // ACT
     var status = readFrom(socketPath);
+    logAppender.flushLogs();
 
     // ASSERT
     assertThat("The response is not empty", status.isPresent(), is(true));

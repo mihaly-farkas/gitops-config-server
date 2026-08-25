@@ -1,6 +1,7 @@
 package io.github.mihaly_farkas.gitops_config_server.lib.test_tool;
 
 import static ch.qos.logback.classic.Level.TRACE;
+import static java.lang.Thread.sleep;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -76,8 +77,13 @@ public class TestLogAppender extends AppenderBase<ILoggingEvent> {
     return description.toString();
   }
 
-  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @SuppressWarnings({"ResultOfMethodCallIgnored", "java:S2925"})
   public void flushLogs() {
     LogManager.getFactory();
+    try {
+      sleep(10);
+    } catch (InterruptedException _) {
+      Thread.currentThread().interrupt();
+    }
   }
 }
