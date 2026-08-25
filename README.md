@@ -18,7 +18,21 @@
 
 # mihaly-farkas/spring-boot-config-server
 
-A containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/projects/spring-cloud-config) server.
+Yet another containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/projects/spring-cloud-config) server.
+
+## 📦 Features
+
+- **Containerized Distribution:** Distributed as a Docker image with the required runtime configuration already assembled.
+
+  - **Hardened Runtime Image:** Built on a security-hardened, minimal Eclipse Temurin [runtime image](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images?search=25-alpine&variants=runtime) designed to minimize the runtime attack surface, with no shell or unnecessary runtime tooling included.
+
+- **Ready-to-Use Configuration Setup:** Comes with the essential Spring Boot, Spring Cloud Config, security, encryption, and operational configuration already set up.
+
+  - **Built-in Security:** Provides setup support for Spring Security.
+
+  - **Health and Monitoring:** Provides Spring Boot Actuator endpoints.
+
+  - **OpenAPI Documentation:** Provides API documentation for the exposed configuration and management endpoints.
 
 ## 🚀 Quick Start
 
@@ -37,20 +51,6 @@ A containerized [Spring&nbsp;Cloud&nbsp;Config](https://spring.io/projects/sprin
    This example intentionally enables the `no_auth` profile to keep local evaluation simple.
 
 2. Visit the Swagger UI for API exploration: http://localhost:8888/swagger-ui/index.html?urls.primaryName=Spring+Cloud+Config
-
-## 📦 Features
-
-- **Containerized Distribution:** Distributed as a Docker image with the required runtime configuration already assembled.
-
-  - **Hardened Runtime Image:** Built on a security-hardened, minimal Eclipse Temurin [runtime image](https://hub.docker.com/hardened-images/catalog/dhi/eclipse-temurin/images?search=25-alpine&variants=runtime) designed to minimize the runtime attack surface, with no shell or unnecessary runtime tooling included.
-
-- **Ready-to-Use Configuration Setup:** Comes with the essential Spring Boot, Spring Cloud Config, security, encryption, and operational configuration already set up.
-
-  - **Built-in Security:** Provides setup support for Spring Security.
-
-  - **Health and Monitoring:** Provides Spring Boot Actuator endpoints.
-
-  - **OpenAPI Documentation:** Provides API documentation for the exposed configuration and management endpoints.
 
 ## ⚠️ Disclaimer & Liability
 
