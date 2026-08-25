@@ -394,7 +394,10 @@ class HealthSocketServerTest {
     server.close();
 
     // ASSERT
-    assertThat("The server stays in STOPPING while the worker thread is still running", server.status(), is(STOPPING));
+    assertThat(
+        "The server stays in STOPPING while the worker thread is still running",
+        server.status(),
+        is(STOPPING));
     assertVerify(
         "The worker thread reference is kept until the thread actually terminates",
         () -> verify(workerThreadReference, times(0)).compareAndSet(workerThread, null));

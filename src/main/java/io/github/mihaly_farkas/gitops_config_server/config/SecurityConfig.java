@@ -32,7 +32,9 @@ import org.springframework.security.web.SecurityFilterChain;
  *
  * <p>All security chains are configured as stateless (no session creation) since this is an
  * API-only application used by other applications, CLIs, scripts, and curl. CSRF protection is
- * disabled as authentication is handled through the Authorization header.
+ * enabled by default and can be disabled explicitly via the {@code
+ * gitops-config-server.security.disable-csrf} property when the deployment environment does not
+ * require it.
  *
  * @author Mihály Farkas
  * @see org.springframework.security.web.SecurityFilterChain

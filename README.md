@@ -72,6 +72,12 @@ I want configuration to be reusable and reproducible whenever and wherever it is
       --spring.profiles.active='docker,no_auth'
    ```
 
+   This example intentionally enables the `no_auth` profile to keep local evaluation simple.
+
+   By default, the container image starts only with the `docker` profile. To require
+   authentication, provide Spring Security credentials (for example via `spring.security.user.*`
+   properties) and omit the `no_auth` profile.
+
 2. Visit the Swagger UI for API exploration: http://localhost:8888/swagger-ui/index.html?urls.primaryName=Spring+Cloud+Config
 
 ## 📦 Features
