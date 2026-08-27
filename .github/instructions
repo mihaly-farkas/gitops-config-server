@@ -1,0 +1,47 @@
+## Commit Message Rules
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) specification for Git commit messages.
+
+### Generic Rules
+
+- If the commit fixes a bug, use `fix` as the type.
+- If the commit changes functionality or UI, use `feat` as the type.
+- If the commit adds or changes tests, use `test` as the type.
+- If the commit is code style or formatting only, use `style` as the type.
+- If the commit is code changes that do not modify functionality, use `refactor` as the type.
+- If the commit is documentation only, use `docs` as the type.
+- If the commit is build system or external dependencies related, use `build` as the type.
+- If the commit is CI configuration files and scripts (e.g., GitHub Actions), use `ci` as the type.
+- If the commit is general maintenance, chores, or non-code tasks, use `chore` as the type.
+- If the commit is performance-focused, use `perf` as the type.
+
+### GitHub Specific Rules
+
+- If the commit changes the `README.md` file only, use `docs(readme)` as the type with scope.
+- If the commit changes the `.github/dependabot.yml` file only, use `chore(dependabot)` as the type with scope.
+- If the commit changes files in the `.github/skills/**` directory, use `chore(ai-skills)` as the type with scope.
+- If the commit changes the `.github/instructions` file only, use `chore(ai-instructions)` as the type with scope.
+
+### Maven Specific Rules
+
+- If the commit changes files in the `pom.xml` file only, use `build(maven)` as the type with scope.
+- If the commit changes files in the `.mvn/maven.config` file only, use `build(maven)` as the type with scope.
+- If the commit changes files in the `.mvn/ruleset.xml` file only, use `build(maven-dependency-management)` as the type with scope.
+
+### Docker Specific Rules
+
+- If the commit changes the `Dockerfile` file only, use `build(docker)` as the type with scope.
+- If the commit changes files in the `docker/**` directory, use `build(docker)` as the type with scope.
+- If the commit changes the `docker/healthcheck.go` file only, use `docker-healthcheck` as the scope with the determined type. For example:
+  - if the commit fixes a bug in the `docker/healthcheck.go` file: `fix(docker-healthcheck): <commit message>`
+  - if the commit adds a new feature in the `docker/healthcheck.go` file: `feat(docker-healthcheck): <commit message>`
+  - if the commit changes the `docker/healthcheck.go` file (style/formatting only): `style(docker-healthcheck): <commit message>`
+
+### Feature Test Specific Rules
+
+- If the commit changes files in the `feature/` directory, use `test(feature)` as the type with scope.
+- If the commit changes files in the `tool/feature-runner` directory, use `build(feature-runner)` as the type with scope.
+
+### Local Development Tool Specific Rules
+
+- If the commit changes files in the `tool/script` directory, use `chore(script)` as the type with scope.
