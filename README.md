@@ -1,4 +1,4 @@
-[![Continuous Delivery](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/continuous-delivery.yaml/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/continuous-delivery.yaml)
+[![Continuous Delivery](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/continuous-delivery.yml/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/continuous-delivery.yml)
 [![CodeQL](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/github-code-scanning/codeql)
 [![Dependabot Updates](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/mihaly-farkas/spring-cloud-config-server/actions/workflows/dependabot/dependabot-updates)
 

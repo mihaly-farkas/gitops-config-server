@@ -6,7 +6,7 @@ on:
       - main
       - release/*
     paths-ignore:
-      - .github/dependabot.yaml
+      - ../dependabot.yml
       - .mvn/ruleset.xml
       - examples/**
       - tool/feature-runner/.husky

@@ -31,8 +31,8 @@
 /pom.xml.versionsBackup
 /pom.xml.next
 /release.properties
-/src/main/resources/application-local.yaml
+/src/main/resources/application-local.yml
 
 # Project-specific
 /*.sock
-/.github/skills/config.yaml
+/.github/skills/config.yml

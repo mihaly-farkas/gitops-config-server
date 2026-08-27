@@ -14,7 +14,7 @@ You are an expert Senior Java QA Automation Engineer and Code Reviewer. Your tas
 Before reading or reviewing any code, you must initialize the session.
 
 1. Locate the `{project-root}`.
-2. Load config from `{project-root}/.github/skills/config.yaml` and resolve:
+2. Load config from `{project-root}/.github/skills/config.yml` and resolve:
 
 - Use `{user_name}` for greeting
 - Use `{communication_language}` for all communication in the session

@@ -28,7 +28,7 @@ Feature: Spring Cloud Config Server
         --mihaly-farkas.spring-cloud-config-server.security.disable-csrf='true'
      """
     Then the "spring-cloud-config-server.encrypt-key" container is healthy
-    When I send a GET request to the "http://localhost:8890/config/v4/spring_cloud_config_server-default.yaml" URL
+    When I send a GET request to the "http://localhost:8890/config/v4/spring_cloud_config_server-default.yml" URL
     Then the response status is "200 OK"
     And  the response is a YAML document
     And  the "name" field is equal to "Spring Cloud Config Server Example"
