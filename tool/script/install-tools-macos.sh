@@ -13,3 +13,4 @@ cd "${PROJECT_DIR}" || exit 1
 
 brew install act
 brew install copilot-cli
+brew install copier
