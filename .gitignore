@@ -14,9 +14,8 @@
 /.tmp-*/
 /.env
 /*@tmp
-/*.sock
+/snyk.json
 /snyk.sarif
-/.github/skills/config.yaml
 
 # Maven
 /target/
@@ -33,3 +32,7 @@
 /pom.xml.next
 /release.properties
 /src/main/resources/application-local.yaml
+
+# Project-specific
+/*.sock
+/.github/skills/config.yaml
