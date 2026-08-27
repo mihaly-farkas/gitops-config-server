@@ -60,11 +60,8 @@ jobs:
           server-id: github
 
       - name: "Prepare build environment"
+        uses: mihaly-farkas/github-action-maven-prepare@main
         id: prepare
-        run: |
-          # Prepare build environment
-          chmod +x .github/workflows/continuous-delivery/prepare-env.sh
-          .github/workflows/continuous-delivery/prepare-env.sh
 
       - name: "Build Maven artifact"
         env:
